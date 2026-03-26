@@ -1,0 +1,17 @@
+CDR For Calls:		Usage log recors
+Fields	Description	Field
+MSISDN		msisdn
+IMSI		imsi
+PLMN	MNC, MCC from where call was originated	roaming_mccmnc
+"	Event Direction "	MO, MT, MF	RAT_type & Sevice_type_ID
+B-Party		opposite_number
+Destination Type	On-net, Off-net, IDD	rating_group
+isS8HR	Yes or No, for Roaming	decided by roaming_mccmnc
+Start Time		usage_start_time  (not the actual call answer time) 
+End Time		usage_end_time
+Actual Call duration	in seconds for (reconciliation with UM)	act_usage_unit
+Call Duration Charged from Subscriber	according to charging Blocks size	usage_unit
+isPAYG	Yes if charged in Monetary Value	sim_service_plan_id 
+Amount/Units deducted from subscriber		price_amount
+service plan id	in case isPAYG=false, which service plan id was consumed	sim_service_plan_id
+bucket id	in case isPAYG=false, which bucket ID was consumed	last_grant_sim_service_plan_bucket_id
