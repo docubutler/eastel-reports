@@ -114,7 +114,8 @@ REQUEST_TABLE = TableSpec(
 
 USAGE_TABLE = TableSpec(
     table_name="iot_portal_tb_usage_log_rep",
-    source_name=r"D:\DB_repos\eastel-reports\iot_portal_tb_usage_log_rep-lt-16-MAR-26\iot_portal_tb_usage_log_rep-lt-16-MAR-26.csv",
+    #source_name=r"D:\DB_repos\eastel-reports\iot_portal_tb_usage_log_rep-lt-16-MAR-26\iot_portal_tb_usage_log_rep-lt-16-MAR-26.csv",
+    source_name=r"D:\DB_repos\eastel-reports\aakash-calling-shawn-eastel-logs.txt",
     #source_name="usage-small.csv",
     columns=(
         ColumnSpec("usage_log_id", "BIGINT", nullable=False, primary_key=True),

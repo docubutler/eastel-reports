@@ -1,36 +1,34 @@
+/* ================================================================
+   FINAL RECON QUERY – DATA 45 & 5G 
+   ================================================================ */
+WITH params AS (
+    SELECT 
+        DATE('2026-03-02') AS report_start_date,
+        DATE('2026-03-15') AS report_end_date
+)
 SELECT 
-    msisdn,
-    imsi,
-    roaming_mccmnc,
-    RAT_type, -- VO in case of voice, 4G/5G in case of Data, SM in case of SMS
-    opposite_number,
-    rating_group AS isOLO,
-    
-	 CASE 
-        WHEN roaming_destination_id != 87 THEN 'Yes' 
-        ELSE 'No' 
-    END AS isRoaming,                     
-    -- Changed OR to AND so it only returns 'YES' if it matches NEITHER value
-    CASE 
-        WHEN roaming_mccmnc IN ('60181000031', '60181000366') THEN 'Yes' 
-        ELSE 'No' 
-    END AS isS8HR, 
-    usage_start_time, 
-    usage_end_time,
-    act_usage_unit AS act_MOU,
-    usage_unit AS MOU,
-    CASE WHEN sim_service_plan_id = 494 THEN 'YES' ELSE 'NO' END AS isPAYG,
-    price_amount,
-    sim_service_plan_id,
-    last_grant_sim_service_plan_bucket_id
-FROM 
-    usage_logs
+    p.report_start_date,
+    p.report_end_date,
+    roaming_mccmnc, -- getting which country the data was used
+    rat_type, -- whether 4G or 5G was used
+
+    COUNT(*) AS total_calls,
+    ROUND(SUM(act_usage_unit), 2)  AS total_act_usage_unit, -- actual usage unit
+    ROUND(SUM(usage_unit), 2) AS total_usage_unit -- usage based on package
+
+FROM iot_portal_tb_usage_log_rep 
+JOIN params p
+
 WHERE 
-    service_type_id = 1 -- data
+    (rat_type = '4G' OR rat_type = '5G') -- for data only 
+
     AND act_usage_unit > 0
-    AND usage_start_time BETWEEN '2026-03-02' AND '2026-03-21'
-    -- AND roaming_mccmnc NOT IN ('60181000014', '60181000015', '60181000018', '60181000019','60180000000502')-- hplmn
-	-- AND roaming_destination_id != 87 --roaming only
-ORDER BY 
-    usage_log_id ASC
-LIMIT 100;
+
+    AND usage_start_time >= p.report_start_date
+    AND usage_start_time < DATE_ADD(p.report_end_date, INTERVAL 1 DAY)
+    
+GROUP BY
+    p.report_start_date,
+    p.report_end_date,
+    roaming_mccmnc,
+    rat_type;
