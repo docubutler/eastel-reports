@@ -32,3 +32,6 @@ GROUP BY
     p.report_end_date,
     roaming_mccmnc,
     rat_type;
+
+
+

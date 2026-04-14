@@ -26,7 +26,7 @@ FROM eastel.smsc_record_parsed t
 JOIN params p
 WHERE t.message_type = 'message'
    -- AND addr_src_digits NOT LIKE '60%' -- only including records sent from shortcodes
-  AND (t.addr_src_digits = '22200Eastel' OR t.addr_src_digits = '22200')
+  AND (t.addr_src_digits = '22200Eastel' OR t.addr_src_digits = '22200' OR t.addr_src_digits = '601170337777') -- '22200Eastel' and '22200' are shortcodes and '601170337777' is long code used to send A2P messages
   AND message_delivery_status IN ('success', 'success_esme'/*, 'temp_failed', 'failed', 'partial', , 'temp_failed_esme', 'ocs_rejected'*/)
   AND t.delivery_date >= p.report_start_date
   AND t.delivery_date < DATE_ADD(p.report_end_date, INTERVAL 1 DAY)

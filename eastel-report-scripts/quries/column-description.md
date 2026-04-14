@@ -59,6 +59,21 @@ This field does **NOT** indicate:
 It only shows:
 > Subscriber’s current network location
 
+SELECT DISTINCT roaming_destination_id FROM iot_portal_tb_usage_log_rep; 
+-- output:
+"roaming_destination_id"
+"0"
+"18"
+"62"
+"79"
+"81"
+"87"
+"99"
+"103"
+"506"
+"507"
+"510"
+
 ---
 
 # 4. roaming_mccmnc (Operator Code)
@@ -76,6 +91,25 @@ for rat_type = 'VO' and 'SM' roaming_mccmnc contains the GT, for data it contain
 
 50218 → Malaysia operator
 23410 → UK operator
+
+SELECT DISTINCT roaming_mccmnc, COUNT(*) FROM iot_portal_tb_usage_log_rep WHERE rat_type = '4G' OR rat_type = '5G' GROUP BY roaming_mccmnc;
+
+/*
+Output:
+
+"roaming_mccmnc"	"COUNT(*)"
+"23420"	"8"
+"45204"	"43"
+"45205"	"30"
+"46000"	"1"
+"46001"	"1"
+"50218"	"686352" -- Malaysian 502: MY, 18: UMobile, 152: Celcom
+"52003"	"37"
+"52004"	"5"
+"52501"	"55"
+"52505"	"449"
+"52510"	"18"
+*/
 
 
 ---
@@ -159,6 +193,20 @@ usage_unit = 120
 
 
 ---
+# 10. rat_type
+
+### Description:
+Determines if its a voice (VO), SMS (SM) or Data (4G, 5G) record
+
+SELECT DISTINCT rat_type FROM iot_portal_tb_usage_log_rep;
+/*
+Output:"rat_type"
+"4G" -- data
+"5G" -- data
+"VO" -- voice
+"SM" -- sms
+\N
+*/
 
 # Key Difference
 
