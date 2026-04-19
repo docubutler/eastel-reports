@@ -115,8 +115,9 @@ REQUEST_TABLE = TableSpec(
 USAGE_TABLE = TableSpec(
     table_name="iot_portal_tb_usage_log_rep",
     #source_name=r"D:\DB_repos\eastel-reports\iot_portal_tb_usage_log_rep-lt-16-MAR-26\iot_portal_tb_usage_log_rep-lt-16-MAR-26.csv",
-    source_name=r"D:\DB_repos\eastel-reports\aakash-calling-shawn-eastel-logs.txt",
-    #source_name="usage-small.csv",
+    #source_name=r"D:\DB_repos\eastel-reports\aakash-calling-shawn-eastel-logs.txt",
+    #source_name=r"D:\DB_repos\eastel-reports\RG500018-payg-data\RG500018 payg data-1776162941679",
+    source_name=r"D:\DB_repos\eastel-reports\face-time_ALL_9-APR_to_11-APR.csv",
     columns=(
         ColumnSpec("usage_log_id", "BIGINT", nullable=False, primary_key=True),
         ColumnSpec("rate_plan_id", "INT", nullable=False),

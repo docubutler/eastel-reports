@@ -244,3 +244,65 @@ WHERE
     AND act_usage_unit > 0
     AND rating_group IN ('ONNET', 'OFFNET')
     AND service_type_sub_cd = 'MT';
+
+
+/* ================================================================
+ Face time number quries, these users have to be refunded 
+    ================================================================ */
+-- 'aparty, date time, charged amount
+
+    WITH params AS (
+        SELECT
+            DATE('2026-04-09') AS report_start_date,
+            DATE('2026-04-11') AS report_end_date
+    )
+    SELECT 
+         p.report_start_date,
+        p.report_end_date,
+        msisdn, count(*) AS face_time_calls,
+        SUM(act_cost_amount) AS total_charged_amount,
+        SUM(act_price_amount) AS total_price_amount,
+        SUM(act_usage_unit) AS total_act_usage_unit,
+        SUM(usage_unit) AS total_usage_unit
+        FROM iot_portal_tb_usage_log_rep
+
+    JOIN params p
+
+    WHERE opposite_number in ('447786205094') -- face time number, iOS sends SMS to this number before activating facetime
+    
+    AND usage_start_time >= p.report_start_date
+
+    AND act_usage_unit > 0 -- only considering actual billable records
+    
+    AND usage_start_time < DATE_ADD(p.report_end_date, INTERVAL 1 DAY)
+
+    GROUP BY 
+    p.report_start_date,
+    p.report_end_date,
+    msisdn
+    
+    ORDER BY face_time_calls DESC
+    ;
+/* ================================================================
+ Face time number quries, these users have to be refunded non grouped
+    ================================================================ */
+
+     WITH params AS (
+        SELECT
+            DATE('2026-04-09') AS report_start_date,
+            DATE('2026-04-11') AS report_end_date
+    )
+    SELECT 
+        msisdn, 
+        usage_start_time, act_cost_amount, act_price_amount, act_usage_unit, usage_unit,
+        roaming_destination_id, roaming_mccmnc, service_type_sub_cd, rating_group, rat_type
+        FROM iot_portal_tb_usage_log_rep
+    JOIN params p
+
+    WHERE opposite_number in ('447786205094') -- face time number, iOS sends SMS to this number before activating facetime
+    
+    AND usage_start_time >= p.report_start_date
+
+    AND act_usage_unit > 0 -- only considering actual billable records
+    
+    AND usage_start_time < DATE_ADD(p.report_end_date, INTERVAL 1 DAY);
