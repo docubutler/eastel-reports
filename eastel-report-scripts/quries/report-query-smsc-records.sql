@@ -13,8 +13,8 @@
 
 WITH params AS (
     SELECT
-        DATE('2026-03-02') AS report_start_date,
-        DATE('2026-03-15') AS report_end_date
+        DATE('2026-04-01') AS report_start_date, -- first of April
+        DATE('2026-05-01') AS report_end_date -- uptill last day of April (exclusive of May 1st)
 )
 SELECT
     p.report_start_date,

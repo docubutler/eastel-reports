@@ -235,3 +235,83 @@ SELECT
 FROM sms_ranked
 WHERE rn = 1
 ORDER BY usage_start_time, usage_log_id;
+
+
+/* ================================================================
+   TITLE: MO SMS Count by Network Type
+
+   DESCRIPTION:
+   This query is used to do total SMS MO recon with UMobile.
+   This query summarizes SMS usage into two network categories:
+
+   - On Net  : rating_group = 'ONNET'
+   - Off Net : rating_group = 'OFFNET'
+
+   Output:
+   - Service Type
+   - Charge Type
+   - SMS Type
+   - No. of SMS
+
+   Notes:
+   - Only SMS records are included (rat_type = 'SM')
+   - SMS is treated as MO in this dataset
+   - Date range covers 2026-03-01 through 2026-03-31
+   - Uses a half-open date filter for cross-database compatibility
+   ================================================================ */
+
+SELECT
+    'SMS' AS "Service Type",
+    'MO' AS "Charge Type",
+    CASE
+        WHEN rating_group = 'ONNET' THEN 'On Net'
+        WHEN rating_group = 'OFFNET' THEN 'Off Net'
+    END AS "SMS Type",
+    COUNT(*) AS "No. of SMS"
+FROM iot_portal_tb_usage_log_rep
+WHERE rat_type = 'SM'
+  AND rating_group IN ('ONNET', 'OFFNET')
+  AND usage_start_time >= '2026-03-01'
+  AND usage_start_time < '2026-04-01'
+GROUP BY rating_group
+ORDER BY
+    CASE
+        WHEN rating_group = 'ONNET' THEN 1
+        WHEN rating_group = 'OFFNET' THEN 2
+    END;
+
+
+/* ================================================================
+   MO SM Domestic, the table only contains MO SMS, so no need to put the MO check 
+   ================================================================ */
+
+SELECT
+    rating_group, SUM(usage_unit) AS mou
+FROM iot_portal_tb_usage_log t
+WHERE t.rat_type = 'SM'
+  AND t.usage_start_time >= '2026-03-01' 
+  AND t.usage_start_time < '2026-04-01'
+  AND roaming_destination_id = 87
+GROUP BY t.rating_group;
+
+
+
+/* ================================================================
+    MO Calls dialled from Malaysia to International
+    So this query gives Domestically originated MO Voice Calls dialed International numbers
+   ================================================================ */
+
+SELECT 
+    rating_group, SUM(usage_unit) AS mou, 
+    ROUND(SUM(usage_unit) / 60, 2) AS MOUmins 
+
+FROM iot_portal_tb_usage_log t 
+
+WHERE t.rat_type = 'SM' 
+    -- AND t.service_type_sub_cd = 'MO' 
+    -- AND t.rating_group IN ('ONNET', 'OFFNET') 
+    AND t.usage_start_time >= '2026-04-01' 
+    AND t.usage_start_time < '2026-05-01' 
+    AND roaming_destination_id = 87 -- call originated from Malaysia
+    AND opposite_number NOT LIKE '60%' 
+GROUP BY t.rating_group;

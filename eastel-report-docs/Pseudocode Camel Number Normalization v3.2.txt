@@ -1,0 +1,339 @@
+////////////////////////////////////////////////////////////
+// CAMEL MO/MT NUMBER NORMALIZATION & CLASSIFICATION
+// VERSION: 3.2
+////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////
+// CONSTANTS & DEFINITIONS
+////////////////////////////////////////////////////////////
+
+HOME_CC = '60'
+SPECIAL_ROAMING_VLR = '60180000000000'
+
+MCN_PREFIXES = ('6018140','60181334','60181335')
+S8HR_CLG_PA  = ('60181000366','60181000031')
+
+TON_SUBSCRIBER     = 4
+TON_INTERNATIONAL  = 1
+TON_UNKNOWN        = 0
+
+NOA_SUBSCRIBER     = 1
+NOA_UNKNOWN        = 2
+NOA_INTERNATIONAL  = 4
+
+
+////////////////////////////////////////////////////////////
+// VLR CONTEXT DETECTION
+////////////////////////////////////////////////////////////
+
+IS_HOME_VLR = (VLR PREFIX HOME_CC) AND (VLR != SPECIAL_ROAMING_VLR)
+
+IS_ROAMING_VLR = (VLR = SPECIAL_ROAMING_VLR) OR (VLR PREFIX NOT HOME_CC)
+
+
+////////////////////////////////////////////////////////////
+// CALL CLASSIFICATION FLAGS (BILLING / TAP)
+////////////////////////////////////////////////////////////
+
+isRoamingCall = False
+isS8HR        = False
+isCS          = False
+isIDD         = False
+on_net        = False
+isCharged     = True
+
+
+////////////////////////////////////////////////////////////
+// SERVICE KEY 82 – MO CALLS
+////////////////////////////////////////////////////////////
+
+IF servicekey = 82
+{
+    ////////////////////////////////////////////////////////////
+    // FORWARDED LEG HANDLING (MCN + NORMAL)
+    ////////////////////////////////////////////////////////////
+
+    IF redirectionInformation PRESENT
+    {
+        IF calledPartyNumber PREFIX IN MCN_PREFIXES
+        {
+            // MCN/IN Announcement - free call
+            reply CONTINUE
+            on_net    = True
+            isCharged = False
+            EXIT
+        }
+        ELSE
+        {
+            // Regular forwarded call - charge to original called party
+            connect_number = calledPartyNumber
+            isCharged = True
+
+            // Determine NOA based on called party number
+            IF calledPartyNumber PREFIX '20'
+                NOA = NOA_SUBSCRIBER
+            ELSE IF calledPartyNumber PREFIX HOME_CC
+                NOA = NOA_INTERNATIONAL
+            ELSE
+                NOA = NOA_UNKNOWN
+
+            // Determine on-net status
+            IF calledPartyNumber PREFIX '208X'
+                on_net = True
+            ELSE
+                on_net = False
+
+            // For charging, use original called number (pre-redirection)
+            IF original_called_number EXISTS
+                actual_called_number_for_charging = original_called_number
+            ELSE
+                actual_called_number_for_charging = calledPartyNumber
+
+            EXIT  // Skip normal MO processing
+        }
+    }
+
+
+    ////////////////////////////////////////////////////////////
+    // HOME VLR – MO CALLS (NON-FORWARDED)
+    ////////////////////////////////////////////////////////////
+
+    IF IS_HOME_VLR
+    {
+        SWITCH (TON)
+        {
+            //--------------------------------------------------
+            // SUBSCRIBER NUMBERING (TON = 4)
+            //--------------------------------------------------
+            CASE TON_SUBSCRIBER:
+                IF PREFIX = '20'
+                {
+                    // Domestic mobile call
+                    connect_number = called_number
+                    NOA = NOA_SUBSCRIBER
+
+                    // On-net if calling within same network (208X)
+                    IF RN PREFIX '208X'
+                        on_net = True
+                    ELSE
+                        on_net = False
+
+                    // For charging: remove 4-digit RN, add country code
+                    actual_called_number_for_charging = 
+                        called_number (remove first 4 digits, add prefix HOME_CC)
+                }
+                ELSE
+                    RELEASE(INVALID_NUMBER)
+            BREAK
+
+
+            //--------------------------------------------------
+            // INTERNATIONAL NUMBERING (TON = 1)
+            //--------------------------------------------------
+            CASE TON_INTERNATIONAL:
+                IF PREFIX = HOME_CC
+                {
+                    // Domestic fixed line (presented as international)
+                    connect_number = called_number
+                    NOA = NOA_INTERNATIONAL
+                    on_net = False
+
+                    actual_called_number_for_charging = called_number
+                }
+                ELSE
+                {
+                    // IDD call to other countries
+                    connect_number = 'C35' + called_number
+                    NOA = NOA_UNKNOWN
+                    on_net = False
+                    isIDD = True
+
+                    actual_called_number_for_charging = called_number
+                }
+            BREAK
+
+
+            //--------------------------------------------------
+            // UNKNOWN NUMBERING (TON = 0)
+            //--------------------------------------------------
+            CASE TON_UNKNOWN:
+                IF PREFIX = '0060'
+                {
+                    // Domestic fixed line with double-zero prefix
+                    connect_number = called_number (trim '00')
+                    NOA = NOA_INTERNATIONAL
+                    on_net = False
+
+                    actual_called_number_for_charging = 
+                        called_number (trim '00')
+                }
+                ELSE IF PREFIX = '00'
+                {
+                    // IDD call with double-zero prefix
+                    connect_number = 'C35' + called_number (trim '00')
+                    NOA = NOA_UNKNOWN
+                    on_net = False
+                    isIDD = True
+
+                    actual_called_number_for_charging = 
+                        called_number (trim '00')
+                }
+                ELSE IF PREFIX = '0'
+                {
+                    // Domestic fixed line with single-zero prefix
+                    connect_number = 
+                        called_number (trim '0', add HOME_CC)
+                    NOA = NOA_INTERNATIONAL
+                    on_net = False
+
+                    actual_called_number_for_charging = 
+                        called_number (trim '0', add HOME_CC)
+                }
+                ELSE
+                {
+                    // Special numbers or short codes
+                    connect_number = called_number
+                    NOA = NOA_UNKNOWN
+                    on_net = False
+
+                    actual_called_number_for_charging = 
+                        called_number (add HOME_CC)
+                }
+            BREAK
+
+
+            DEFAULT:
+                RELEASE(INVALID_NUMBER)
+        }
+    }
+
+
+    ////////////////////////////////////////////////////////////
+    // ROAMING VLR – MO CALLS (NON-FORWARDED)
+    ////////////////////////////////////////////////////////////
+
+    ELSE IF IS_ROAMING_VLR
+    {
+        isRoamingCall = True
+        original_prefix = PREFIX  // Store for IDD determination
+
+        SWITCH (TON)
+        {
+            //--------------------------------------------------
+            // SUBSCRIBER NUMBERING (TON = 4)
+            //--------------------------------------------------
+            CASE TON_SUBSCRIBER:
+                IF PREFIX = '20'
+                {
+                    // Roaming mobile call to Malaysia
+                    IF sccp.clgPA IN S8HR_CLG_PA
+                    {
+                        // S8HR roaming - keep full number
+                        connect_number = called_number
+                        NOA = NOA_SUBSCRIBER
+                        isS8HR = True
+                        isCS = False
+                    }
+                    ELSE
+                    {
+                        // CS roaming - remove mobile prefix
+                        connect_number = called_number (trim '20XX')
+                        NOA = NOA_INTERNATIONAL
+                        isS8HR = False
+                        isCS = True
+                    }
+
+                    on_net = False
+
+                    // For charging: remove 4-digit RN, add country code
+                    actual_called_number_for_charging = 
+                        called_number (remove first 4 digits, add prefix HOME_CC)
+                }
+                ELSE
+                    RELEASE(INVALID_NUMBER)
+            BREAK
+
+
+            //--------------------------------------------------
+            // INTERNATIONAL NUMBERING (TON = 1)
+            //--------------------------------------------------
+            CASE TON_INTERNATIONAL:
+                connect_number = called_number
+                NOA = NOA_INTERNATIONAL
+                on_net = False
+                isCS = True
+
+                // IDD if not calling Malaysia
+                IF original_prefix != HOME_CC
+                    isIDD = True
+
+                actual_called_number_for_charging = called_number
+            BREAK
+
+
+            //--------------------------------------------------
+            // UNKNOWN NUMBERING (TON = 0)
+            //--------------------------------------------------
+            CASE TON_UNKNOWN:
+                IF PREFIX = '00'
+                {
+                    // Roaming call with double-zero prefix
+                    connect_number = called_number (trim '00')
+                    NOA = NOA_INTERNATIONAL
+                    on_net = False
+                    isCS = True
+
+                    // IDD if not calling Malaysia (0060)
+                    IF original_prefix != '0060'
+                        isIDD = True
+
+                    actual_called_number_for_charging = 
+                        called_number (trim '00')
+                }
+                ELSE
+                    RELEASE(INVALID_NUMBER)
+            BREAK
+
+
+            DEFAULT:
+                RELEASE(INVALID_NUMBER)
+        }
+    }
+
+
+    ////////////////////////////////////////////////////////////
+    // INVALID VLR CONTEXT
+    ////////////////////////////////////////////////////////////
+
+    ELSE
+        RELEASE(INVALID_NUMBER)
+}
+
+
+////////////////////////////////////////////////////////////
+// SERVICE KEY 83 – S8HR MOBILE TERMINATING
+////////////////////////////////////////////////////////////
+
+ELSE IF servicekey = 83
+     AND eventTypeBCSM = termAttemptAuthorized
+{
+    // S8HR MT call - international MT charging
+    reply CONTINUE
+    isCharged = True
+}
+
+
+////////////////////////////////////////////////////////////
+// INVALID SERVICE KEY
+////////////////////////////////////////////////////////////
+
+ELSE
+{
+    RELEASE(INVALID_SERVICE_KEY)
+}
+
+
+////////////////////////////////////////////////////////////
+// END OF FILE – VERSION 3.2 
+////////////////////////////////////////////////////////////

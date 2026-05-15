@@ -595,3 +595,104 @@ ORDER BY
     roaming_status,
     total_calls DESC,
     destination_country;
+
+
+/* ================================================================
+   TITLE: MO Voice MOU Summary based on On Net vs Off Net
+
+   DESCRIPTION:
+
+   This query is used to do total Voice MO recon with UMobile.
+   This query summarizes billed Mobile Originated (MO) voice usage
+   into two categories:
+
+   - On Net  : rating_group = 'ONNET'
+   - Off Net : rating_group = 'OFFNET'
+
+   Output:
+   - Service Type
+   - Charge Type
+   - Call Type
+   - MOUs
+
+   Notes:
+   - Only voice records are included (rat_type = 'VO')
+   - Only MO calls are included (service_type_sub_cd = 'MO')
+   - MOUs are calculated from billed usage_unit
+   - usage_unit is converted from seconds to minutes by dividing by 60
+   - Date filter is inclusive of report_start_date and report_end_date
+   ================================================================ */
+
+
+WITH params AS (
+    SELECT
+        DATE('2026-03-02') AS report_start_date,
+        DATE('2026-03-15') AS report_end_date
+)
+SELECT
+    'Voice' AS `Service Type`,
+    'MO' AS `Charge Type`,
+    CASE
+        WHEN rating_group = 'ONNET' THEN 'On Net'
+        WHEN rating_group = 'OFFNET' THEN 'Off Net'
+    END AS `Call Type`,
+    ROUND(SUM(usage_unit) / 60, 2) AS `MOUs`
+FROM iot_portal_tb_usage_log_rep t
+JOIN params p
+WHERE t.rat_type = 'VO'
+  AND t.service_type_sub_cd = 'MO'
+  AND t.rating_group IN ('ONNET', 'OFFNET')
+  AND t.usage_start_time >= p.report_start_date
+  AND t.usage_start_time < DATE_ADD(p.report_end_date, INTERVAL 1 DAY)
+GROUP BY t.rating_group
+ORDER BY
+    CASE
+        WHEN rating_group = 'ONNET' THEN 1
+        WHEN rating_group = 'OFFNET' THEN 2
+    END;
+
+/* ================================================================
+    MO Calls dialled from Malaysia to International
+    So this query gives Domestically originated MO Voice Calls dialed International numbers
+   ================================================================ */
+
+SELECT 
+    rating_group, SUM(usage_unit) AS mou, 
+    ROUND(SUM(usage_unit) / 60, 2) AS MOUmins 
+
+FROM iot_portal_tb_usage_log t 
+
+WHERE t.rat_type = 'VO' 
+    -- AND t.service_type_sub_cd = 'MO' 
+    -- AND t.rating_group IN ('ONNET', 'OFFNET') 
+    AND t.usage_start_time >= '2026-04-01' 
+    AND t.usage_start_time < '2026-05-01' 
+    AND roaming_destination_id = 87 -- call originated from Malaysia
+    AND opposite_number NOT LIKE '60%' 
+GROUP BY t.rating_group;
+
+
+/* ================================================================
+ Domestic VOICE MO Calls
+   ================================================================ */
+SELECT 
+    rating_group, SUM(usage_unit) AS mou, 
+    ROUND(SUM(usage_unit) / 60, 2) AS MOUmins 
+
+FROM iot_portal_tb_usage_log t 
+
+WHERE t.rat_type = 'VO' 
+    AND t.service_type_sub_cd = 'MO' 
+    AND t.rating_group IN ('ONNET', 'OFFNET') 
+    AND t.usage_start_time >= '2026-04-01' 
+    AND t.usage_start_time < '2026-05-01' 
+    AND roaming_destination_id = 87 
+    AND LENGTH(opposite_number) >= 11 
+    AND opposite_number LIKE '60%' 
+GROUP BY t.rating_group;
+
+/* 
+ Checking if a session has multiple rows, but it turns out that a session has only one row
+*/
+  select * from iot_portal_tb_usage_log_rep 
+  where session_id = '1770272991390_12482_555249416' order by usage_start_time;

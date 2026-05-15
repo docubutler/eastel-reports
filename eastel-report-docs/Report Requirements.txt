@@ -1,4 +1,4 @@
-four types of reports:
+four types of reports are required to be extracted from the data:
 1. Settlement report (internationl minutes, local minutes, roaming to internationl, internation to international)
 2. Monitoring/Maintaince/Operational report (last 5 minutes how many data/call/sms was consumed)
 3. Subscriber usage report (Subscriber wants to check themself of their own usage) - lowest priority
@@ -10,3 +10,6 @@ sources:
 3. Prov CDRs - 
 
 manual reports to be extracted for now. 
+
+
+

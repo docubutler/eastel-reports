@@ -306,3 +306,7 @@ WHERE
     AND act_usage_unit > 0 -- only considering actual billable records
     
     AND usage_start_time < DATE_ADD(p.report_end_date, INTERVAL 1 DAY);
+
+
+    /* ================================================================
+    

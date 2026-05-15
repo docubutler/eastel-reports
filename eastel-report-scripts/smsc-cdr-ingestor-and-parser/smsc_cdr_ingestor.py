@@ -14,7 +14,8 @@ DB_CONFIG = {
     "database": "eastel"
 }
 
-INPUT_DIR = r"D:\DB_repos\eastel-reports\smsc1_march_01_29\logs-shared\logs-shared"
+#INPUT_DIR = r"D:\DB_repos\eastel-reports\smsc1_march_01_29\logs-shared\logs-shared"
+INPUT_DIR = r"D:\DB_repos\eastel-reports\April\smsc1-data-04-2026\cdr.log.2026-04"
 TABLE_NAME = "smsc_record"   # configurable table name
 BATCH_SIZE = 1000
 

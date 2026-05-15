@@ -1,0 +1,151 @@
+roaming_destination_id,country,roaming_destination_name,mcc
+4,Greece,Vodafone,202
+5,Netherlands,Vodafone,204
+8,France,Bouygues Telecom,208
+9,Spain,Vodafone,214
+10,Hungary,Vodafone,216
+11,Italy,Vodafone,222
+12,Italy,H3G,222
+13,Romania,Vodafone,226
+14,Switzerland,Swisscom,228
+15,CzechRepublic,Vodafone,230
+16,Austria,H3G,232
+17,UK,Vodafone,234
+18,UK,H3G,234
+19,Denmark,H3G,238
+20,Sweden,H3G,240
+21,Russian Federation,BeeLine/VimpelCom,250
+22,Germany,Vodafone,262
+23,Portugal,Vodafone,268
+24,Ireland,Vodafone,272
+25,Ireland,H3G,272
+26,Albania,Vodafone,276
+27,Malta,Vodafone,278
+30,Turkey,Vodafone-Telsim,286
+33,Canada,Rogers,302
+34,United States,T-Mobile,310
+35,Guam,DoCoMoPacific,310
+37,United States,ATT,310
+40,Myanmar,MPT,414
+43,SaudiArabia,STC,420
+46,UAE,Du,424
+48,Israel,Partner,425
+49,Israel,Pelephone,425
+51,Qatar,Vodafone,427
+56,Japan,NTTDoCoMo,440
+59,Korea,SKT,450
+60,Korea,KT Freetel Co. Ltd.,450
+62,Vitenam,Vitenam Mobile,452
+64,HongKong,H3G,454
+72,Macau,H3G,455
+74,Cambodia,Smart,456
+75,Laos,Lao Telecom,457
+79,China,ChinaMobile,460
+81,China,Unicom,460
+82,Taiwan,FET,466
+83,Taiwan,Chunghwa,466
+87,Malaysia,Mi3G-UMobile,502
+89,Malaysia,Celcom,502
+92,Australia,Vodafone,505
+93,Indonesia,Indosat,510
+97,Philippines,Smart,515
+99,Thailand,AIS,520
+103,Singapore,Starhub,525
+105,NewZealand,Vodafone,530
+107,Egypt,Orange,602
+111,Ghana,Vodafone,620
+113,CongoDR,Vodafone,630
+116,Tanzania,Vodafone,640
+117,Mozambique,Vodafone,643
+118,Lesotho,Vodafone,651
+119,SouthAfrica,Vodafone,655
+120,Peru,Telefonica,716
+121,Argentina,Telefonica,722
+122,Argentina,Personal,722
+123,Brazil,Telefonica,724
+124,Chile,Telefonica,730
+125,Colombia,Telefonica,732
+126,Ecuador,Telefonica,740
+127,Uruguay,Telefonica,748
+131,Taiwan,Taiwan Mobile,466
+135,HongKong,SIP CLIENT,454
+435,HongKong,HKCSL,454
+436,HongKong,Smartone,454
+437,HongKong,CMHK,454
+501,Indonesia,Hutchison 3,510
+502,Indonesia,Telkomsel,510
+503,Japan,Softbank,440
+504,Philippines,Globe Telecom,515
+505,Singapore,M1,525
+506,Singapore,Simba,525
+507,Singapore,SingTel,525
+508,Thailand,DTAC,520
+509,Thailand,TOT,520
+510,Thailand,Truemove,520
+511,Australia,Optus,505
+512,Azerbaijan,Bakcell,400
+513,Bahrain,STC,426
+514,Bangladesh,Grameenphone,470
+515,Bangladesh,Banglalink,470
+516,Belgium,Orange/Mobistar,206
+517,Brunei,UNN/DST/Progresif,528
+518,Cambodia,Cellcard/Mobitel,456
+519,Cambodia,Metfone,456
+520,Canada,Bell,302
+521,Canada,Telus,302
+522,Costa Rica,Telefonica Latam,712
+523,Croatia,Hrvatski Telekom/T-Mobile,219
+524,Denmark,Telenor,238
+525,Egypt,Vodafone,602
+526,El Salvador,Telefonica Latam,706
+527,Finland,DNA,244
+528,France,Free Mobile,208
+529,France,Orange,208
+530,Germany,O2,262
+531,Greece,WIND/TIM,202
+532,Iceland,Nova,274
+533,India,Airtel,405
+534,India,Airtel,404
+535,India,Reliance Jio,405
+536,Ireland,EIR/Meteor,272
+537,Italy,Iliad,222
+538,Kazakhstan,Beeline/Kar-Tel LLP,401
+539,Laos,Unitel,457
+540,Latvia,Bite (SIA Bite),247
+541,Lithuania,Bite,246
+542,Luxembourg,Orange,270
+543,Macau,CTM,455
+544,Mexico,Movistar,334
+545,Moldova,Orange,259
+546,Mongolia,MobiCom,428
+547,Montenegro,Mtel,297
+548,Myanmar,Mytel,414
+549,Myanmar,Telenor,414
+550,Nepal,Nepal Telecom,429
+551,NewZealand,Spark,530
+552,Norway,Telenor,242
+553,Oman,VF Oman,422
+554,Pakistan,Telenor,410
+555,Poland,Orange,260
+556,Poland,Play,260
+557,Poland,Plus / Polkomtel,260
+558,Romania,Telekom,226
+559,Romania,Orange,226
+560,SaudiArabia,Zain / MTC,420
+561,SaudiArabia,Mobily,420
+562,Slovakia,Telekom,231
+563,Spain,Orange,214
+564,Spain,Movistar / Telefonica Espania,214
+565,SRI LANKA,Hutchison 3,413
+566,SRI LANKA,Mobitel,413
+567,Sweden,Telenor,240
+568,Switzerland,Salt / Orange Communications SA,228
+569,Switzerland,Sunrise,228
+570,Timor-Leste,Telemor,504
+571,UAE,E&,424
+572,UK,O2,234
+573,Ukraine,Lifecell / Astelit,255
+574,Ukraine,Vodafone,255
+575,Uzbekistan,Uzbektelecom,434
+576,Venezuela,Telefonica Latam,734
+577,Vitenam,Vietnam: Viettel,452

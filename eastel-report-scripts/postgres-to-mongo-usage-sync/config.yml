@@ -1,11 +1,21 @@
+# postgres:
+#   dsn: ""
+#   host: "anchor-prod-eastel-bss-db.cj6m4oq2u9nh.ap-southeast-5.rds.amazonaws.com"
+#   port: 5432
+#   database: "anchor_iot"
+#   user: "anchor_readonly"
+#   password: "Ac123@%"
+#   sslmode: "prefer"
+
 postgres:
   dsn: ""
-  host: "anchor-prod-eastel-bss-db.cj6m4oq2u9nh.ap-southeast-5.rds.amazonaws.com"
+  host: "localhost"
   port: 5432
-  database: "anchor_iot"
-  user: "anchor_readonly"
-  password: "Ac123@%"
-  sslmode: "prefer"
+  database: "mydb"
+  user: "postgres"
+  password: "postgres"
+  sslmode: "disable"
+
 
 mongo:
   uri: "mongodb+srv://prodUser:CxNFHCraErGeEsYI@easteldataanalysis.zwi2ei.mongodb.net/?appName=EastelDataAnalysis"

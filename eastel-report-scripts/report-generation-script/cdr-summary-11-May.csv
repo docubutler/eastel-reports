@@ -1,0 +1,244 @@
+No.,Services Type,Anchor Service Descriptions,Event Direction (MO/MT),Network Type (On/Off Net),Total Transaction Count,Total Duration (Mins),Total SMS Units,Total Volume (MB),Query
+1,Voice (Mobile Origination) On Net,Fixed Line LTE,MO,On-Net,9588,7065.99,N/A,N/A,"-- Query 1: Voice (Mobile Origination) - On Net
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume, 2)) AS mou,
+    SUM(ROUND(update_used_volume / 60, 2)) AS mou_minutes,
+    t.roaming_destination_id
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('VO')
+    AND t.rating_group IN ('ONNET')
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id = 87
+
+GROUP BY
+    t.rat_type,
+    t.roaming_destination_id;"
+2,Voice (Mobile Origination) Off Net,Voice Offnet LTE,MO,Off-Net,36435,28330.1,,,"-- Query 2: Voice (Mobile Origination) - Off Net
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume, 2)) AS mou,
+    SUM(ROUND(update_used_volume / 60, 2)) AS mou_minutes,
+    t.roaming_destination_id
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('VO')
+    AND t.rating_group IN ('OFFNET')
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id = 87
+
+GROUP BY
+    t.rat_type,
+    t.roaming_destination_id;"
+3,SMS (Mobile Origination) On Net,<to fill-up>,MO,On-Net ,38694,,644,,"-- Query 3: SMS (Mobile Origination) On Net
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume, 2)) AS mou,
+    t.roaming_destination_id
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('SM')
+
+    /* No OFFNET / ONNET classification in SMS data */
+    -- AND t.rating_group IN ('OFFNET', 'ONNET')
+
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id = 87
+
+GROUP BY
+    t.rat_type,
+    t.roaming_destination_id;"
+4,SMS (Mobile Origination) Off Net,<to fill-up>,MO,Off-Net,,,,,
+5,4G Data,<to fill-up>,N/A,N/A,1313197,,,47878497.86,"-- Query 5: 4G Data
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume,2)) AS mou,
+    SUM(ROUND((update_used_volume / 1048576), 2)) AS mou_mbs,
+    t.roaming_destination_id
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('4G')
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id = 87
+
+GROUP BY
+    t.rat_type,
+    t.roaming_destination_id;"
+6,5G Data,<to fill-up>,N/A,N/A,628664,,,27947324.67,"-- Query 6: 5G Data
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume,2)) AS mou,
+    SUM(ROUND((update_used_volume / 1048576), 2)) AS mou_mbs,
+    t.roaming_destination_id
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('5G')
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id = 87
+
+GROUP BY
+    t.rat_type,
+    t.roaming_destination_id;"
+7,International Voice,<to fill-up>,MO,N/A,673,357,,,"-- Query 7: International Voice
+
+SELECT
+    t.rating_group,
+    COUNT(*) AS total_transaction,
+    ROUND(SUM(update_used_volume), 2) AS mou,
+    ROUND(SUM(update_used_volume) / 60, 2) AS mou_minutes
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type = 'VO'
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id = 87
+    AND t.opposite_number NOT LIKE '60%'
+
+GROUP BY
+    t.rating_group;"
+8,International SMS,<to fill-up>,MO,N/A,,,25,,"-- Query 8: International SMS
+
+SELECT
+    t.rating_group,
+    ROUND(SUM(update_used_volume), 2) AS mou
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type = 'SM'
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id = 87
+    AND t.opposite_number NOT LIKE '60%'
+
+GROUP BY
+    t.rating_group;"
+9,Intl Roaming Data 4G,<to fill-up>,N/A,N/A,4823,,,8210.83,"-- Query 9: Intl Roaming Data 4G
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume,2)) AS mou,
+    SUM(ROUND((update_used_volume / 1048576), 2)) AS mou_mbs
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('4G')
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id <> 87
+
+GROUP BY
+    t.rat_type;"
+10,Intl Roaming Data 5G,<to fill-up>,N/A,N/A,54,,,230.01,"-- Query 10: Intl Roaming Data 5G
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume,2)) AS mou,
+    SUM(ROUND((update_used_volume / 1048576), 2)) AS mou_mbs
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('5G')
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id <> 87
+
+GROUP BY
+    t.rat_type;"
+11,Intl Roaming Voice (MO),<to fill-up>,MO,N/A,1,0,,,"-- Query 11: Intl Roaming Voice (MO)
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume, 2)) AS mou,
+    SUM(ROUND(update_used_volume / 60, 2)) AS mou_minutes
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('VO')
+    AND t.service_type_sub_cd = 'MO'
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id <> 87
+	AND opposite_number NOT LIKE '60%' 
+
+GROUP BY
+    t.rat_type;"
+12,Intl Roaming Voice (MT),<to fill-up>,MT,N/A,54,1,,,"-- Query 12: Intl Roaming Voice (MT)
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume, 2)) AS mou,
+    SUM(ROUND(update_used_volume / 60, 2)) AS mou_minutes
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('VO')
+    AND t.service_type_sub_cd = 'MT'
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id <> 87
+	AND opposite_number NOT LIKE '60%' 
+
+GROUP BY
+    t.rat_type;"
+13,Intl Roaming SMS (MO),<to fill-up>,MO,N/A,,,,,"-- Query 13: Intl Roaming SMS (MO)
+
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(update_used_volume, 2)) AS mou
+
+FROM iot_portal_tb_request_log t
+
+WHERE
+    t.rat_type IN ('SM')
+	AND t.service_type_sub_cd = 'MO'
+
+    /* No OFFNET / ONNET classification in SMS data */
+    -- AND t.rating_group IN ('OFFNET', 'ONNET')
+
+    AND t.req_time >= '2026-05-11'
+    AND t.req_time < '2026-05-12'
+    AND t.roaming_destination_id <> 87
+
+GROUP BY
+    t.rat_type;"
+14,Premium or Special Numbers,<to fill-up>,N/A,N/A,,,,,
+15,Non-Profit A2P,<to fill-up>,MT,N/A,,,,,
+16,Commercial A2P,<to fill-up>,MT,N/A,,,,,
