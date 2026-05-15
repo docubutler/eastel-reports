@@ -374,17 +374,21 @@ def sync_once(
     total_processed = 0
 
     while True:
+        batch_started_at = time.perf_counter()
         last_usage_log_id = get_last_synced_id(
             state_collection=state_collection,
             source_table=source_table,
             mongo_collection=mongo_collection_name,
         )
+        fetch_started_at = time.perf_counter()
         rows = fetch_rows(pg_conn, source_table, last_usage_log_id, batch_size)
+        fetch_duration_seconds = time.perf_counter() - fetch_started_at
         if not rows:
             break
 
         operations = []
         max_usage_log_id = last_usage_log_id
+        transform_started_at = time.perf_counter()
         for row in rows:
             usage_log_id = int(row["usage_log_id"])
             max_usage_log_id = max(max_usage_log_id, usage_log_id)
@@ -395,19 +399,32 @@ def sync_once(
                     upsert=True,
                 )
             )
+        transform_duration_seconds = time.perf_counter() - transform_started_at
 
+        mongo_write_started_at = time.perf_counter()
         mongo_collection.bulk_write(operations, ordered=False)
+        mongo_write_duration_seconds = time.perf_counter() - mongo_write_started_at
+        checkpoint_started_at = time.perf_counter()
         save_last_synced_id(
             state_collection=state_collection,
             source_table=source_table,
             mongo_collection=mongo_collection_name,
             last_usage_log_id=max_usage_log_id,
         )
+        checkpoint_duration_seconds = time.perf_counter() - checkpoint_started_at
 
         total_processed += len(rows)
+        batch_duration_seconds = time.perf_counter() - batch_started_at
+        rows_per_second = len(rows) / batch_duration_seconds if batch_duration_seconds > 0 else 0.0
         print(
             f"[{datetime.now().isoformat(timespec='seconds')}] "
-            f"synced {len(rows)} rows, checkpoint={max_usage_log_id}"
+            f"synced {len(rows)} rows, checkpoint={max_usage_log_id}, "
+            f"fetch={fetch_duration_seconds:.3f}s, "
+            f"transform={transform_duration_seconds:.3f}s, "
+            f"mongo_write={mongo_write_duration_seconds:.3f}s, "
+            f"checkpoint_save={checkpoint_duration_seconds:.3f}s, "
+            f"batch_total={batch_duration_seconds:.3f}s, "
+            f"rate={rows_per_second:.2f} rows/s"
         )
 
         if len(rows) < batch_size:
