@@ -100,6 +100,17 @@ def ensure_collection(db, collection_name: str):
     return db[collection_name]
 
 
+def drop_legacy_request_log_index_if_present(collection) -> list[str]:
+    dropped_indexes = []
+    for index in collection.list_indexes():
+        name = index.get("name")
+        key = index.get("key")
+        if name == "uq_request_log_id" and list(key.items()) == [("request_log_id", 1)]:
+            collection.drop_index(name)
+            dropped_indexes.append(name)
+    return dropped_indexes
+
+
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
@@ -133,6 +144,7 @@ def main() -> None:
         db = client[mongo_db_name]
         usage_collection = ensure_collection(db, mongo_collection_name)
         state_collection = ensure_collection(db, state_collection_name)
+        dropped_indexes = drop_legacy_request_log_index_if_present(usage_collection)
 
         created_indexes = []
         created_indexes.append(
@@ -209,6 +221,10 @@ def main() -> None:
             )
         )
         print("Mongo usage collection is ready.")
+        if dropped_indexes:
+            print("Dropped incompatible legacy indexes:")
+            for index_name in dropped_indexes:
+                print(f" - {index_name}")
         print("Indexes ensured:")
         for index_name in created_indexes:
             print(f" - {index_name}")

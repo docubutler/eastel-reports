@@ -348,6 +348,32 @@ def release_lock(
     state_collection.delete_one({"_id": lock_key, "owner_id": owner_id})
 
 
+def validate_usage_collection_indexes(mongo_collection) -> None:
+    has_usage_unique_index = False
+
+    for index in mongo_collection.list_indexes():
+        name = index.get("name")
+        key = index.get("key")
+        key_items = list(key.items())
+
+        if name == "uq_request_log_id" and key_items == [("request_log_id", 1)]:
+            raise RuntimeError(
+                "Mongo collection has incompatible unique index 'uq_request_log_id' on "
+                "'request_log_id'. This usage sync writes documents keyed by 'usage_log_id'. "
+                "Run create_mongo_usage_collection.py to drop the stale request-log index "
+                "and ensure 'uq_usage_log_id'."
+            )
+
+        if name == "uq_usage_log_id" and key_items == [("usage_log_id", 1)] and index.get("unique"):
+            has_usage_unique_index = True
+
+    if not has_usage_unique_index:
+        raise RuntimeError(
+            "Mongo collection is missing the required unique index 'uq_usage_log_id' on "
+            "'usage_log_id'. Run create_mongo_usage_collection.py before starting usage sync."
+        )
+
+
 def fetch_rows(pg_conn, source_table: str, last_usage_log_id: int, batch_size: int) -> list[dict[str, Any]]:
     query = sql.SQL(
         """
@@ -516,6 +542,7 @@ def main() -> None:
             mongo_db = mongo_client[mongo_db_name]
             mongo_collection = mongo_db[mongo_collection_name]
             state_collection = mongo_db[state_collection_name]
+            validate_usage_collection_indexes(mongo_collection)
 
             if args.reset_state:
                 reset_state(state_collection, source_table, mongo_collection_name)
