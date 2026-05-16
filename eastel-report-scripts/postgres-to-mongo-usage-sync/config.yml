@@ -11,7 +11,7 @@ postgres:
   dsn: ""
   host: "localhost"
   port: 5432
-  database: "mydb"
+  database: "anchor_iot"
   user: "postgres"
   password: "postgres"
   sslmode: "disable"
