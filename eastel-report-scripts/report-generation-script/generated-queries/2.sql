@@ -16,7 +16,7 @@ WHERE
     AND t.req_time < '{{end_date_exclusive}}'
     AND t.roaming_destination_id = 87
     AND LENGTH(opposite_number) > 10
-    
+
 GROUP BY
     t.rat_type,
     t.roaming_destination_id;

@@ -315,3 +315,7 @@ WHERE t.rat_type = 'SM'
     AND roaming_destination_id = 87 -- call originated from Malaysia
     AND opposite_number NOT LIKE '60%' 
 GROUP BY t.rating_group;
+
+
+select * from iot_portal_tb_usage_log_rep t 
+where t.rat_type = 'VO' and opposite_number LIKE '1300%'

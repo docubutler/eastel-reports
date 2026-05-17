@@ -3,7 +3,8 @@
 SELECT 
     -- opposite_number,
     COUNT(*) AS total_transaction,
-	sum(update_used_volume) as mou
+    SUM(ROUND(update_used_volume, 2)) AS mou,
+    SUM(ROUND(update_used_volume / 60, 2)) AS mou_minutes
 
 FROM {{request_log_table}} t
  
