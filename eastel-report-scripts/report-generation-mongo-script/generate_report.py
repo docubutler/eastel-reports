@@ -1,5 +1,6 @@
 import argparse
 import csv
+import json
 import logging
 import os
 import re
@@ -9,21 +10,20 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-import psycopg
 import yaml
-from psycopg.rows import dict_row
+from bson.decimal128 import Decimal128
+from pymongo import MongoClient
 
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
 PLACEHOLDER_PATTERN = re.compile(r"%(\d+)\.([A-Za-z0-9_]+)%")
 VARIABLE_PATTERN = re.compile(r"{{\s*([A-Za-z0-9_]+)\s*}}")
-QUERY_TITLE_PATTERN = re.compile(r"^--\s*Query\s+\d+\s*:\s*(.+?)\s*$", re.IGNORECASE | re.MULTILINE)
-LOGGER = logging.getLogger("postgres_report_generation")
+LOGGER = logging.getLogger("mongo_report_generation")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Execute split SQL queries and populate a report CSV from the template.",
+        description="Execute Mongo query files and populate a report CSV from the template.",
     )
     parser.add_argument(
         "--config",
@@ -61,46 +61,15 @@ def get_config_value(config: dict[str, Any], section: str, key: str, env_name: s
     return default
 
 
-def get_postgres_dsn(config: dict[str, Any]) -> str:
-    dsn = os.getenv("POSTGRES_DSN")
-    if dsn:
-        return dsn
-
-    postgres_config = config.get("postgres", {})
-    if isinstance(postgres_config, dict):
-        dsn = postgres_config.get("dsn")
-        if dsn:
-            return str(dsn)
-
-    host = get_config_value(config, "postgres", "host", "PGHOST", "localhost")
-    port = get_config_value(config, "postgres", "port", "PGPORT", "5432")
-    dbname = get_config_value(config, "postgres", "database", "PGDATABASE")
-    user = get_config_value(config, "postgres", "user", "PGUSER")
-    password = get_config_value(config, "postgres", "password", "PGPASSWORD")
-    sslmode = get_config_value(config, "postgres", "sslmode", "PGSSLMODE")
-
-    missing = [
-        name
-        for name, value in {
-            "PGDATABASE": dbname,
-            "PGUSER": user,
-            "PGPASSWORD": password,
-        }.items()
-        if not value
-    ]
-    if missing:
-        raise ValueError(f"Missing PostgreSQL settings: {', '.join(missing)}")
-
-    parts = [
-        f"host={host}",
-        f"port={port}",
-        f"dbname={dbname}",
-        f"user={user}",
-        f"password={password}",
-    ]
-    if sslmode:
-        parts.append(f"sslmode={sslmode}")
-    return " ".join(parts)
+def get_mongo_client(config: dict[str, Any]) -> MongoClient:
+    mongo_uri = os.getenv("MONGO_URI")
+    if not mongo_uri:
+        mongo_config = config.get("mongo", {})
+        if isinstance(mongo_config, dict):
+            mongo_uri = mongo_config.get("uri")
+    if not mongo_uri:
+        raise ValueError("Missing MongoDB setting: MONGO_URI or mongo.uri")
+    return MongoClient(str(mongo_uri))
 
 
 def resolve_path(base_dir: Path, raw_path: str) -> Path:
@@ -117,9 +86,9 @@ def get_report_config(config: dict[str, Any], config_path: Path) -> dict[str, An
     query_column_name = str(report_config.get("query_column_name") or "Query")
 
     return {
-        "split_queries_dir": resolve_path(
+        "queries_dir": resolve_path(
             base_dir,
-            str(report_config.get("split_queries_dir") or "generated-queries"),
+            str(report_config.get("queries_dir") or "queries"),
         ),
         "template_csv": resolve_path(
             base_dir,
@@ -130,7 +99,7 @@ def get_report_config(config: dict[str, Any], config_path: Path) -> dict[str, An
             str(report_config.get("output_csv") or "report-output.csv"),
         ),
         "query_column_name": query_column_name,
-        "default_table": str(report_config.get("default_table") or ""),
+        "default_collection": str(report_config.get("default_collection") or ""),
     }
 
 
@@ -163,37 +132,52 @@ def build_runtime_variables(config: dict[str, Any], report_config: dict[str, Any
     if not isinstance(variables, dict):
         raise ValueError("Config key 'variables' must be a YAML object.")
 
-    tables = config.get("tables", {})
-    if tables is None:
-        tables = {}
-    if not isinstance(tables, dict):
-        raise ValueError("Config key 'tables' must be a YAML object.")
+    collections = config.get("collections", {})
+    if collections is None:
+        collections = {}
+    if not isinstance(collections, dict):
+        raise ValueError("Config key 'collections' must be a YAML object.")
 
     merged: dict[str, str] = {}
-    for source in (tables, variables):
+    for source in (collections, variables):
         for key, value in source.items():
             merged[str(key)] = str(value)
 
-    default_table = report_config.get("default_table")
-    if default_table:
-        merged.setdefault("default_table", str(default_table))
+    default_collection = report_config.get("default_collection")
+    if default_collection:
+        merged.setdefault("default_collection", str(default_collection))
 
     end_date_value = merged.get("end_date")
     if end_date_value and "end_date_exclusive" not in merged:
         end_date_dt = parse_iso_date_or_datetime(end_date_value)
-        merged["end_date_exclusive"] = (end_date_dt + timedelta(days=1)).date().isoformat()
+        merged["end_date_exclusive"] = (end_date_dt + timedelta(days=1)).isoformat()
 
     return merged
 
 
-def render_sql_template(sql_text: str, variables: dict[str, str]) -> str:
+def render_template(text: str, variables: dict[str, str]) -> str:
     def replace(match: re.Match[str]) -> str:
         variable_name = match.group(1)
         if variable_name not in variables:
-            raise ValueError(f"Missing SQL variable '{variable_name}' in config.yml.")
+            raise ValueError(f"Missing template variable '{variable_name}' in config.yml.")
         return variables[variable_name]
 
-    return VARIABLE_PATTERN.sub(replace, sql_text)
+    return VARIABLE_PATTERN.sub(replace, text)
+
+
+def resolve_special_values(value: Any, variables: dict[str, str]) -> Any:
+    if isinstance(value, dict):
+        if set(value.keys()) == {"$dateVar"}:
+            variable_name = str(value["$dateVar"])
+            if variable_name not in variables:
+                raise ValueError(f"Missing date variable '{variable_name}' in config.yml.")
+            return parse_iso_date_or_datetime(variables[variable_name])
+        return {key: resolve_special_values(inner, variables) for key, inner in value.items()}
+
+    if isinstance(value, list):
+        return [resolve_special_values(item, variables) for item in value]
+
+    return value
 
 
 def aggregate_values(values: list[Any]) -> Any:
@@ -229,7 +213,17 @@ def aggregate_query_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def normalize_result_row(row: dict[str, Any]) -> dict[str, Any]:
-    return {str(key).lower(): value for key, value in row.items()}
+    return {str(key).lower(): normalize_scalar(value) for key, value in row.items()}
+
+
+def normalize_scalar(value: Any) -> Any:
+    if isinstance(value, Decimal128):
+        return value.to_decimal()
+    if isinstance(value, list):
+        return [normalize_scalar(item) for item in value]
+    if isinstance(value, dict):
+        return {key: normalize_scalar(inner) for key, inner in value.items()}
+    return value
 
 
 def format_cell_value(value: Any) -> str:
@@ -238,6 +232,16 @@ def format_cell_value(value: Any) -> str:
     if isinstance(value, Decimal):
         return format(value, "f")
     return str(value)
+
+
+def serialize_for_query_column(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, Decimal128):
+        return str(value.to_decimal())
+    if isinstance(value, Decimal):
+        return str(value)
+    raise TypeError(f"Unsupported value type: {type(value)!r}")
 
 
 def extract_referenced_query_ids(template_csv: Path) -> list[str]:
@@ -260,81 +264,96 @@ def extract_referenced_query_ids(template_csv: Path) -> list[str]:
     return referenced_query_ids
 
 
-def extract_query_title(sql_text: str, query_id: str) -> str:
-    match = QUERY_TITLE_PATTERN.search(sql_text)
-    if match:
-        return match.group(1).strip()
-    return f"Query {query_id}"
-
-
 def execute_queries(
-    conn: psycopg.Connection[Any],
+    mongo_db: Any,
     queries_dir: Path,
     variables: dict[str, str],
+    default_collection: str,
     selected_query_ids: set[str],
 ) -> tuple[dict[str, dict[str, Any]], dict[str, str], list[dict[str, Any]]]:
     if not queries_dir.exists():
-        raise FileNotFoundError(f"Split queries directory not found: {queries_dir}")
+        raise FileNotFoundError(f"Queries directory not found: {queries_dir}")
 
     query_results: dict[str, dict[str, Any]] = {}
     rendered_queries: dict[str, str] = {}
     query_timings: list[dict[str, Any]] = []
 
-    sql_files = sorted(
-        queries_dir.glob("*.sql"),
+    query_files = sorted(
+        queries_dir.glob("*.yml"),
         key=lambda path: int(path.stem) if path.stem.isdigit() else path.stem,
     )
-    if not sql_files:
-        raise ValueError(f"No .sql files found in: {queries_dir}")
+    if not query_files:
+        raise ValueError(f"No .yml query files found in: {queries_dir}")
 
-    sql_files_to_run = [sql_file for sql_file in sql_files if sql_file.stem in selected_query_ids]
-    if not sql_files_to_run:
+    query_files_to_run = [query_file for query_file in query_files if query_file.stem in selected_query_ids]
+    if not query_files_to_run:
         LOGGER.info("No referenced queries found in template CSV. Skipping query execution.")
         return query_results, rendered_queries, query_timings
 
-    missing_query_ids = [query_id for query_id in selected_query_ids if query_id not in {path.stem for path in sql_files}]
+    missing_query_ids = [query_id for query_id in selected_query_ids if query_id not in {path.stem for path in query_files}]
     if missing_query_ids:
         raise ValueError(
             f"Referenced query ids are missing from {queries_dir}: {', '.join(sorted(missing_query_ids, key=lambda value: int(value) if value.isdigit() else value))}"
         )
 
-    LOGGER.info("Starting query execution. referenced_queries=%s", len(sql_files_to_run))
+    LOGGER.info("Starting query execution. referenced_queries=%s", len(query_files_to_run))
 
-    with conn.cursor(row_factory=dict_row) as cursor:
-        for current_index, sql_file in enumerate(sql_files_to_run, start=1):
-            query_started_at = timer.perf_counter()
-            query_id = sql_file.stem
-            sql_template = sql_file.read_text(encoding="utf-8")
-            rendered_sql = render_sql_template(sql_template, variables)
-            query_title = extract_query_title(sql_template, query_id)
-            LOGGER.info(
-                "Executing query %s/%s | id=%s | title=%s",
-                current_index,
-                len(sql_files_to_run),
-                query_id,
-                query_title,
-            )
-            cursor.execute(rendered_sql)
-            rows = list(cursor.fetchall())
-            aggregated = aggregate_query_rows(rows)
-            query_results[query_id] = normalize_result_row(aggregated)
-            rendered_queries[query_id] = rendered_sql.strip()
-            duration_seconds = timer.perf_counter() - query_started_at
-            query_timings.append(
-                {
-                    "query_id": query_id,
-                    "title": query_title,
-                    "row_count": len(rows),
-                    "duration_seconds": duration_seconds,
-                }
-            )
-            LOGGER.info(
-                "Completed query id=%s | title=%s | rows=%s | duration=%.3fs",
-                query_id,
-                query_title,
-                len(rows),
-                duration_seconds,
-            )
+    for current_index, query_file in enumerate(query_files_to_run, start=1):
+        query_started_at = timer.perf_counter()
+        query_id = query_file.stem
+        query_template = query_file.read_text(encoding="utf-8")
+        rendered_query = render_template(query_template, variables)
+        definition = yaml.safe_load(rendered_query)
+        if not isinstance(definition, dict):
+            raise ValueError(f"Query file must contain a YAML object: {query_file}")
+
+        query_title = str(definition.get("title") or f"Query {query_id}")
+        collection_name = str(definition.get("collection") or default_collection).strip()
+        if not collection_name:
+            raise ValueError(f"Query {query_id} does not specify a collection and no default_collection is configured.")
+
+        pipeline = resolve_special_values(definition.get("pipeline"), variables)
+        if not isinstance(pipeline, list):
+            raise ValueError(f"Query {query_id} must define a pipeline list.")
+
+        LOGGER.info(
+            "Executing query %s/%s | id=%s | title=%s | collection=%s | stages=%s",
+            current_index,
+            len(query_files_to_run),
+            query_id,
+            query_title,
+            collection_name,
+            len(pipeline),
+        )
+        rows = list(mongo_db[collection_name].aggregate(pipeline))
+        aggregated = aggregate_query_rows([normalize_result_row(row) for row in rows])
+        query_results[query_id] = aggregated
+        rendered_queries[query_id] = json.dumps(
+            {
+                "collection": collection_name,
+                "pipeline": pipeline,
+            },
+            default=serialize_for_query_column,
+            ensure_ascii=True,
+            indent=2,
+        )
+        duration_seconds = timer.perf_counter() - query_started_at
+        query_timings.append(
+            {
+                "query_id": query_id,
+                "title": query_title,
+                "collection": collection_name,
+                "row_count": len(rows),
+                "duration_seconds": duration_seconds,
+            }
+        )
+        LOGGER.info(
+            "Completed query id=%s | title=%s | rows=%s | duration=%.3fs",
+            query_id,
+            query_title,
+            len(rows),
+            duration_seconds,
+        )
 
     return query_results, rendered_queries, query_timings
 
@@ -395,22 +414,32 @@ def main() -> None:
     config = load_config(str(config_path))
     report_config = get_report_config(config, config_path)
     variables = build_runtime_variables(config, report_config)
-    postgres_dsn = get_postgres_dsn(config)
 
     template_csv = report_config["template_csv"]
     output_csv = report_config["output_csv"]
-    split_queries_dir = report_config["split_queries_dir"]
+    queries_dir = report_config["queries_dir"]
     query_column_name = report_config["query_column_name"]
 
     if not template_csv.exists():
         raise FileNotFoundError(f"Template CSV not found: {template_csv}")
 
     referenced_query_ids = extract_referenced_query_ids(template_csv)
+    mongo_database = get_config_value(
+        config,
+        "mongo",
+        "database",
+        "MONGO_DB",
+        None,
+    )
+    if not mongo_database:
+        raise ValueError("Missing MongoDB database name: MONGO_DB or mongo.database")
+
     LOGGER.info("Report generation started")
     LOGGER.info("Config path: %s", config_path)
     LOGGER.info("Template CSV: %s", template_csv)
     LOGGER.info("Output CSV: %s", output_csv)
-    LOGGER.info("Split queries dir: %s", split_queries_dir)
+    LOGGER.info("Queries dir: %s", queries_dir)
+    LOGGER.info("Mongo database: %s", mongo_database)
     LOGGER.info(
         "Referenced query ids from CSV: %s",
         ", ".join(referenced_query_ids) if referenced_query_ids else "(none)",
@@ -422,12 +451,14 @@ def main() -> None:
         variables.get("end_date_exclusive", ""),
     )
 
-    with psycopg.connect(postgres_dsn) as conn:
+    with get_mongo_client(config) as mongo_client:
+        mongo_db = mongo_client[str(mongo_database)]
         query_results, rendered_queries, query_timings = execute_queries(
-            conn,
-            split_queries_dir,
-            variables,
-            set(referenced_query_ids),
+            mongo_db=mongo_db,
+            queries_dir=queries_dir,
+            variables=variables,
+            default_collection=str(report_config.get("default_collection") or ""),
+            selected_query_ids=set(referenced_query_ids),
         )
 
     populate_template(
@@ -443,9 +474,10 @@ def main() -> None:
     LOGGER.info("CSV output written: %s", output_csv)
     for timing in query_timings:
         LOGGER.info(
-            "Query summary | id=%s | title=%s | rows=%s | duration=%.3fs",
+            "Query summary | id=%s | title=%s | collection=%s | rows=%s | duration=%.3fs",
             timing["query_id"],
             timing["title"],
+            timing["collection"],
             timing["row_count"],
             timing["duration_seconds"],
         )

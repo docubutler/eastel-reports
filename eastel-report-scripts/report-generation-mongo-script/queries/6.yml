@@ -1,0 +1,49 @@
+query_id: 6
+title: 5G Data
+collection: '{{request_log}}'
+pipeline:
+- $match:
+    rat_type:
+      $in:
+      - 5G
+    req_time:
+      $gte:
+        $dateVar: start_date
+      $lt:
+        $dateVar: end_date_exclusive
+    roaming_destination_id: 87
+- $group:
+    _id:
+      rat_type: $rat_type
+      roaming_destination_id: $roaming_destination_id
+    rat_type:
+      $first: $rat_type
+    total_transaction:
+      $sum: 1
+    mou_raw:
+      $sum:
+        $round:
+        - $update_used_volume
+        - 2
+    mou_mbs_raw:
+      $sum:
+        $round:
+        - $divide:
+          - $update_used_volume
+          - 1048576
+        - 2
+    roaming_destination_id:
+      $first: $roaming_destination_id
+- $project:
+    _id: 0
+    rat_type: 1
+    total_transaction: 1
+    mou:
+      $round:
+      - $mou_raw
+      - 2
+    mou_mbs:
+      $round:
+      - $mou_mbs_raw
+      - 2
+    roaming_destination_id: 1

@@ -1,0 +1,41 @@
+query_id: 7
+title: International Voice
+collection: '{{request_log}}'
+pipeline:
+- $match:
+    rat_type: VO
+    req_time:
+      $gte:
+        $dateVar: start_date
+      $lt:
+        $dateVar: end_date_exclusive
+    roaming_destination_id: 87
+    opposite_number:
+      $not:
+        $regex: ^60
+- $group:
+    _id:
+      rating_group: $rating_group
+    rating_group:
+      $first: $rating_group
+    total_transaction:
+      $sum: 1
+    mou_raw:
+      $sum: $update_used_volume
+    mou_minutes_raw:
+      $sum:
+        $divide:
+        - $update_used_volume
+        - 60
+- $project:
+    _id: 0
+    rating_group: 1
+    total_transaction: 1
+    mou:
+      $round:
+      - $mou_raw
+      - 2
+    mou_minutes:
+      $round:
+      - $mou_minutes_raw
+      - 2

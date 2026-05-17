@@ -5,7 +5,7 @@ SELECT
     COUNT(*) AS total_transaction,
     SUM(ROUND(update_used_volume, 2)) AS mou
 
-FROM iot_portal_tb_request_log t
+FROM {{request_log_table}} t
 
 WHERE
     t.rat_type IN ('SM')
@@ -15,7 +15,7 @@ WHERE
     -- AND t.rating_group IN ('OFFNET', 'ONNET')
 
     AND t.req_time >= '{{start_date}}'
-    AND t.req_time < '{{end_date}}'
+    AND t.req_time < '{{end_date_exclusive}}'
     AND t.roaming_destination_id <> 87
 
 GROUP BY

@@ -1,0 +1,29 @@
+query_id: 8
+title: International SMS
+collection: '{{request_log}}'
+pipeline:
+- $match:
+    rat_type: SM
+    req_time:
+      $gte:
+        $dateVar: start_date
+      $lt:
+        $dateVar: end_date_exclusive
+    roaming_destination_id: 87
+    opposite_number:
+      $not:
+        $regex: ^60
+- $group:
+    _id:
+      rating_group: $rating_group
+    rating_group:
+      $first: $rating_group
+    mou_raw:
+      $sum: $update_used_volume
+- $project:
+    _id: 0
+    rating_group: 1
+    mou:
+      $round:
+      - $mou_raw
+      - 2

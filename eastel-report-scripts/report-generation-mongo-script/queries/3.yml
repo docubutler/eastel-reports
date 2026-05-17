@@ -1,0 +1,38 @@
+query_id: 3
+title: SMS (Mobile Origination) On Net
+collection: '{{request_log}}'
+pipeline:
+- $match:
+    rat_type:
+      $in:
+      - SM
+    req_time:
+      $gte:
+        $dateVar: start_date
+      $lt:
+        $dateVar: end_date_exclusive
+    roaming_destination_id: 87
+- $group:
+    _id:
+      rat_type: $rat_type
+      roaming_destination_id: $roaming_destination_id
+    rat_type:
+      $first: $rat_type
+    total_transaction:
+      $sum: 1
+    mou_raw:
+      $sum:
+        $round:
+        - $update_used_volume
+        - 2
+    roaming_destination_id:
+      $first: $roaming_destination_id
+- $project:
+    _id: 0
+    rat_type: 1
+    total_transaction: 1
+    mou:
+      $round:
+      - $mou_raw
+      - 2
+    roaming_destination_id: 1

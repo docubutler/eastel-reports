@@ -7,7 +7,10 @@ import yaml
 
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
-SECTION_PATTERN = re.compile(
+PREFERRED_SECTION_PATTERN = re.compile(
+    r"(?m)^--\s*QUERY:\s*(\d+)\s*\|\s*(.+?)\s*$"
+)
+LEGACY_SECTION_PATTERN = re.compile(
     r"/\*\s*=+\s*(\d+)\.\s*(.*?)\s*=+\s*\*/",
     re.DOTALL,
 )
@@ -66,12 +69,14 @@ def get_report_config(config: dict[str, Any], config_path: Path) -> dict[str, Pa
 
 def replace_date_literals(query_text: str) -> str:
     updated = START_DATE_PATTERN.sub(r"\1'{{start_date}}'", query_text)
-    updated = END_DATE_PATTERN.sub(r"\1'{{end_date}}'", updated)
+    updated = END_DATE_PATTERN.sub(r"\1'{{end_date_exclusive}}'", updated)
     return updated
 
 
 def extract_numbered_queries(source_text: str) -> list[tuple[int, str, str]]:
-    matches = list(SECTION_PATTERN.finditer(source_text))
+    matches = list(PREFERRED_SECTION_PATTERN.finditer(source_text))
+    if not matches:
+        matches = list(LEGACY_SECTION_PATTERN.finditer(source_text))
     numbered_queries: list[tuple[int, str, str]] = []
 
     for index, match in enumerate(matches):
@@ -85,7 +90,9 @@ def extract_numbered_queries(source_text: str) -> list[tuple[int, str, str]]:
         numbered_queries.append((query_number, title, query_body))
 
     if not numbered_queries:
-        raise ValueError("No numbered queries were found in the source SQL file.")
+        raise ValueError(
+            "No numbered queries were found in the source SQL file. Prefer '-- QUERY: <number> | <title>' section markers."
+        )
 
     return numbered_queries
 
