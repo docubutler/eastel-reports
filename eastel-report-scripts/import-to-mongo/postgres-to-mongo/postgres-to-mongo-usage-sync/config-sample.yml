@@ -1,0 +1,21 @@
+postgres:
+  dsn: ""
+  host: "localhost"
+  port: 5432
+  database: "anchor_iot"
+  user: "your_user"
+  password: "your_password"
+  sslmode: "disable"
+
+mongo:
+  uri: "mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+  eastel_database: "eastel-data"
+  eastel_usage_collection: "usage_logs"
+  eastel_usage_state_collection: "usage_log_sync_state"
+
+sync:
+  postgres_usage_source_table: "iot_portal_tb_usage_log"
+  batch_size: 1000
+  continuous: true
+  poll_interval_seconds: 60
+  lock_timeout_seconds: 3600

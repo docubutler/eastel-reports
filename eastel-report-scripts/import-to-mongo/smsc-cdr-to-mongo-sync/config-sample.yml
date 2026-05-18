@@ -1,0 +1,18 @@
+source:
+  input_dir: "D:/path/to/smsc-cdr-input"
+
+mongo:
+  uri: "mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+  eastel_database: "eastel-data"
+  smsc_cdr_collection: "smsc_cdrs"
+  smsc_cdr_state_collection: "smsc_cdr_sync_state"
+
+sync:
+  batch_size: 1000
+  schedule_time: "02:00"
+  continuous: false
+  lock_timeout_seconds: 3600
+
+logging:
+  level: "INFO"
+  file_path: "D:/var/logs/smsc_cdr_to_mongo_sync.log"

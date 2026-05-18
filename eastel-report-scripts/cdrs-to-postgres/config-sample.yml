@@ -1,0 +1,19 @@
+postgres:
+  dsn: ""
+  host: "localhost"
+  port: 5432
+  database: "anchor_iot"
+  user: "your_user"
+  password: "your_password"
+  sslmode: "disable"
+
+import:
+  csv_path: "D:/path/to/request-logs.csv"
+  schema_sql_path: "local-iot_portal_tb_request_log.sql"
+  table_name: "public.iot_portal_tb_request_log"
+  sequence_name: "public.iot_portal_seq_request_log"
+  batch_size: 1000
+  progress_every_rows: 5000
+  commit_each_batch: true
+  truncate_before_load: false
+  bad_rows_path: "request-log-import-bad-rows.csv"

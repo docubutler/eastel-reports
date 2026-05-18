@@ -1,0 +1,25 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local IDE/system files
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
+
+# Local runtime configuration with credentials
+**/config.yml
+!**/config-sample.yml
+
+# Common local/generated artifacts
+*.log
+report-generation/report-generation-postgres/generated-queries/
+report-generation/report-generation-postgres/report-output.csv
+report-generation/report-generation-mongo/report-*.csv
+cdrs-to-postgres/request-log-import-bad-rows.csv
