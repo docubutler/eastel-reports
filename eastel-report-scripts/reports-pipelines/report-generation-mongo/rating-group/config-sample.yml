@@ -1,0 +1,42 @@
+# MongoDB connection settings.
+# You can also provide these with environment variables:
+# - MONGO_URI
+# - MONGO_DB
+mongo:
+  uri: "mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+  database: "eastel-data"
+
+report_generation:
+  queries_dir: "queries"
+  template_csv: "report-template.csv"
+  output_csv: "rating-group-report-2026-04.csv"
+  mode: "raw_rows"
+  raw_query_id: "1"
+  query_column_name: "Query"
+  include_query_column: false
+  default_collection: "request_logs"
+  allow_disk_use: true
+  hint: "ix_req_time"
+  max_time_ms: 0
+
+  # Leave this empty to use the template headers exactly as the output headers.
+  # To rename columns later, uncomment and edit:
+  # output_columns:
+  #   - source: "report_start_date"
+  #     header: "Report Start Date"
+  #   - source: "report_end_date"
+  #     header: "Report End Date"
+  #   - source: "count"
+  #     header: "Transaction Count"
+  #   - source: "sum"
+  #     header: "Total Used Volume"
+  #   - source: "rating_group"
+  #     header: "Rating Group"
+  output_columns: []
+
+collections:
+  request_log: "request_logs"
+
+variables:
+  start_date: "2026-04-01"
+  end_date: "2026-04-30"

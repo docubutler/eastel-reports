@@ -1,0 +1,35 @@
+query_id: 13
+title: Intl Roaming SMS (MO)
+collection: '{{request_log}}'
+pipeline:
+- $match:
+    $and:
+    - rat_type:
+        $in:
+        - SM
+    - service_type_sub_cd: MO
+    - req_time:
+        $gte:
+          $dateVar: start_date
+    - req_time:
+        $lt:
+          $dateVar: end_date_exclusive
+    - roaming_destination_id:
+        $ne: 87
+- $group:
+    _id:
+      rat_type: $rat_type
+    total_transaction:
+      $sum: 1
+    mou:
+      $sum:
+        $round:
+        - $update_used_volume
+        - 2
+- $project:
+    _id: 0
+    rat_type: $_id.rat_type
+    total_transaction: 1
+    mou: 1
+- $sort:
+    rat_type: 1

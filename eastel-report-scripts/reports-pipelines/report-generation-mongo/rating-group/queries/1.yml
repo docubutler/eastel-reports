@@ -1,0 +1,28 @@
+query_id: 1
+title: Rating Group Summary
+collection: "{{request_log}}"
+pipeline:
+  - $match:
+      req_time:
+        $gte:
+          $dateVar: start_date
+        $lt:
+          $dateVar: end_date_exclusive
+  - $group:
+      _id: "$rating_group"
+      count:
+        $sum: 1
+      sum:
+        $sum:
+          $ifNull:
+            - "$update_used_volume"
+            - 0
+  - $project:
+      _id: 0
+      report_start_date: "{{start_date}}"
+      report_end_date: "{{end_date}}"
+      count: "$count"
+      sum: "$sum"
+      rating_group: "$_id"
+  - $sort:
+      rating_group: 1

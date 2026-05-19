@@ -1,0 +1,47 @@
+query_id: 5
+title: 4G Data
+collection: '{{request_log}}'
+pipeline:
+- $match:
+    $and:
+    - rat_type:
+        $in:
+        - 4G
+    - req_time:
+        $gte:
+          $dateVar: start_date
+    - req_time:
+        $lt:
+          $dateVar: end_date_exclusive
+    - roaming_destination_id: 87
+    - rating_group:
+        $nin:
+        - '500003'
+- $group:
+    _id:
+      rat_type: $rat_type
+      roaming_destination_id: $roaming_destination_id
+    total_transaction:
+      $sum: 1
+    mou:
+      $sum:
+        $round:
+        - $act_update_used_volume
+        - 2
+    mou_mbs:
+      $sum:
+        $round:
+        - $divide:
+          - $act_update_used_volume
+          - 1048576
+        - 2
+- $project:
+    _id: 0
+    rat_type: $_id.rat_type
+    total_transaction: 1
+    mou: 1
+    mou_mbs: 1
+    roaming_destination_id: $_id.roaming_destination_id
+- $sort:
+    rat_type: 1
+    roaming_destination_id: 1

@@ -1,0 +1,59 @@
+query_id: 14
+title: Premium or Special Numbers
+collection: '{{request_log}}'
+pipeline:
+- $match:
+    $and:
+    - rat_type: VO
+    - req_time:
+        $gte:
+          $dateVar: start_date
+    - req_time:
+        $lt:
+          $dateVar: end_date_exclusive
+    - $or:
+      - opposite_number: '600380008000'
+      - opposite_number: '60103'
+      - opposite_number: '60100'
+      - opposite_number: '6015454'
+      - opposite_number: '6015300'
+      - opposite_number: '6015353'
+      - opposite_number: '6015404'
+      - opposite_number: '6015444'
+      - opposite_number: '6015777'
+      - $and:
+        - $or:
+          - opposite_number:
+              $regex: ^601300.*$
+          - opposite_number:
+              $regex: ^601700.*$
+          - opposite_number:
+              $regex: ^601800.*$
+        - $expr:
+            $lt:
+            - $strLenCP:
+                $ifNull:
+                - $opposite_number
+                - ''
+            - 12
+- $group:
+    _id: null
+    total_transaction:
+      $sum: 1
+    mou:
+      $sum:
+        $round:
+        - $update_used_volume
+        - 2
+    mou_minutes:
+      $sum:
+        $round:
+        - $divide:
+          - $update_used_volume
+          - 60
+        - 2
+- $project:
+    _id: 0
+    total_transaction: 1
+    mou: 1
+    mou_minutes: 1

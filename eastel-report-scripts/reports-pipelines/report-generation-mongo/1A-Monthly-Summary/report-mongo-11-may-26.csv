@@ -1,0 +1,853 @@
+No.,Services Type,Anchor Service Descriptions,Event Direction (MO/MT),Network Type (On/Off Net),Total Transaction Count,Total Duration (Mins),Total SMS Units,Total Volume (MB),Query
+1,Voice (Mobile Origination) On Net,Fixed Line LTE,MO,On-Net,9588,7065.99,N/A,N/A,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""VO""
+          ]
+        },
+        ""rating_group"": {
+          ""$in"": [
+            ""ONNET""
+          ]
+        },
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": 87
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type"",
+          ""roaming_destination_id"": ""$roaming_destination_id""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""mou_minutes_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              {
+                ""$divide"": [
+                  ""$update_used_volume"",
+                  60
+                ]
+              },
+              2
+            ]
+          }
+        },
+        ""roaming_destination_id"": {
+          ""$first"": ""$roaming_destination_id""
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_minutes"": {
+          ""$round"": [
+            ""$mou_minutes_raw"",
+            2
+          ]
+        },
+        ""roaming_destination_id"": 1
+      }
+    }
+  ]
+}"
+2,Voice (Mobile Origination) Off Net,Voice Offnet LTE,MO,Off-Net,36435,28330.1,,,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""VO""
+          ]
+        },
+        ""rating_group"": {
+          ""$in"": [
+            ""OFFNET""
+          ]
+        },
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": 87
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type"",
+          ""roaming_destination_id"": ""$roaming_destination_id""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""mou_minutes_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              {
+                ""$divide"": [
+                  ""$update_used_volume"",
+                  60
+                ]
+              },
+              2
+            ]
+          }
+        },
+        ""roaming_destination_id"": {
+          ""$first"": ""$roaming_destination_id""
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_minutes"": {
+          ""$round"": [
+            ""$mou_minutes_raw"",
+            2
+          ]
+        },
+        ""roaming_destination_id"": 1
+      }
+    }
+  ]
+}"
+3,SMS (Mobile Origination) On Net,<to fill-up>,MO,On-Net ,38694,,644,,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""SM""
+          ]
+        },
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": 87
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type"",
+          ""roaming_destination_id"": ""$roaming_destination_id""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""roaming_destination_id"": {
+          ""$first"": ""$roaming_destination_id""
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""roaming_destination_id"": 1
+      }
+    }
+  ]
+}"
+4,SMS (Mobile Origination) Off Net,<to fill-up>,MO,Off-Net,,,,,
+5,4G Data,<to fill-up>,N/A,N/A,1313197,,,47878497.84,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""4G""
+          ]
+        },
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": 87
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type"",
+          ""roaming_destination_id"": ""$roaming_destination_id""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""mou_mbs_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              {
+                ""$divide"": [
+                  ""$update_used_volume"",
+                  1048576
+                ]
+              },
+              2
+            ]
+          }
+        },
+        ""roaming_destination_id"": {
+          ""$first"": ""$roaming_destination_id""
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_mbs"": {
+          ""$round"": [
+            ""$mou_mbs_raw"",
+            2
+          ]
+        },
+        ""roaming_destination_id"": 1
+      }
+    }
+  ]
+}"
+6,5G Data,<to fill-up>,N/A,N/A,628664,,,27947324.67,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""5G""
+          ]
+        },
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": 87
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type"",
+          ""roaming_destination_id"": ""$roaming_destination_id""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""mou_mbs_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              {
+                ""$divide"": [
+                  ""$update_used_volume"",
+                  1048576
+                ]
+              },
+              2
+            ]
+          }
+        },
+        ""roaming_destination_id"": {
+          ""$first"": ""$roaming_destination_id""
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_mbs"": {
+          ""$round"": [
+            ""$mou_mbs_raw"",
+            2
+          ]
+        },
+        ""roaming_destination_id"": 1
+      }
+    }
+  ]
+}"
+7,International Voice,<to fill-up>,MO,N/A,673,357,,,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": ""VO"",
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": 87,
+        ""opposite_number"": {
+          ""$not"": {
+            ""$regex"": ""^60""
+          }
+        }
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rating_group"": ""$rating_group""
+        },
+        ""rating_group"": {
+          ""$first"": ""$rating_group""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": ""$update_used_volume""
+        },
+        ""mou_minutes_raw"": {
+          ""$sum"": {
+            ""$divide"": [
+              ""$update_used_volume"",
+              60
+            ]
+          }
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rating_group"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_minutes"": {
+          ""$round"": [
+            ""$mou_minutes_raw"",
+            2
+          ]
+        }
+      }
+    }
+  ]
+}"
+8,International SMS,<to fill-up>,MO,N/A,,,25,,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": ""SM"",
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": 87,
+        ""opposite_number"": {
+          ""$not"": {
+            ""$regex"": ""^60""
+          }
+        }
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rating_group"": ""$rating_group""
+        },
+        ""rating_group"": {
+          ""$first"": ""$rating_group""
+        },
+        ""mou_raw"": {
+          ""$sum"": ""$update_used_volume""
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rating_group"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        }
+      }
+    }
+  ]
+}"
+9,Intl Roaming Data 4G,<to fill-up>,N/A,N/A,4823,,,8210.83,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""4G""
+          ]
+        },
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": {
+          ""$ne"": 87
+        }
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""mou_mbs_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              {
+                ""$divide"": [
+                  ""$update_used_volume"",
+                  1048576
+                ]
+              },
+              2
+            ]
+          }
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_mbs"": {
+          ""$round"": [
+            ""$mou_mbs_raw"",
+            2
+          ]
+        }
+      }
+    }
+  ]
+}"
+10,Intl Roaming Data 5G,<to fill-up>,N/A,N/A,54,,,230.01,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""5G""
+          ]
+        },
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": {
+          ""$ne"": 87
+        }
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""mou_mbs_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              {
+                ""$divide"": [
+                  ""$update_used_volume"",
+                  1048576
+                ]
+              },
+              2
+            ]
+          }
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_mbs"": {
+          ""$round"": [
+            ""$mou_mbs_raw"",
+            2
+          ]
+        }
+      }
+    }
+  ]
+}"
+11,Intl Roaming Voice (MO),<to fill-up>,MO,N/A,1,0,,,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""VO""
+          ]
+        },
+        ""service_type_sub_cd"": ""MO"",
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": {
+          ""$ne"": 87
+        },
+        ""opposite_number"": {
+          ""$not"": {
+            ""$regex"": ""^60""
+          }
+        }
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""mou_minutes_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              {
+                ""$divide"": [
+                  ""$update_used_volume"",
+                  60
+                ]
+              },
+              2
+            ]
+          }
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_minutes"": {
+          ""$round"": [
+            ""$mou_minutes_raw"",
+            2
+          ]
+        }
+      }
+    }
+  ]
+}"
+12,Intl Roaming Voice (MT),<to fill-up>,MT,N/A,54,1,,,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""VO""
+          ]
+        },
+        ""service_type_sub_cd"": ""MT"",
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": {
+          ""$ne"": 87
+        },
+        ""opposite_number"": {
+          ""$not"": {
+            ""$regex"": ""^60""
+          }
+        }
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        },
+        ""mou_minutes_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              {
+                ""$divide"": [
+                  ""$update_used_volume"",
+                  60
+                ]
+              },
+              2
+            ]
+          }
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        },
+        ""mou_minutes"": {
+          ""$round"": [
+            ""$mou_minutes_raw"",
+            2
+          ]
+        }
+      }
+    }
+  ]
+}"
+13,Intl Roaming SMS (MO),<to fill-up>,MO,N/A,,,,,"{
+  ""collection"": ""request_logs"",
+  ""pipeline"": [
+    {
+      ""$match"": {
+        ""rat_type"": {
+          ""$in"": [
+            ""SM""
+          ]
+        },
+        ""service_type_sub_cd"": ""MO"",
+        ""req_time"": {
+          ""$gte"": ""2026-05-11T00:00:00+00:00"",
+          ""$lt"": ""2026-05-12T00:00:00+00:00""
+        },
+        ""roaming_destination_id"": {
+          ""$ne"": 87
+        }
+      }
+    },
+    {
+      ""$group"": {
+        ""_id"": {
+          ""rat_type"": ""$rat_type""
+        },
+        ""rat_type"": {
+          ""$first"": ""$rat_type""
+        },
+        ""total_transaction"": {
+          ""$sum"": 1
+        },
+        ""mou_raw"": {
+          ""$sum"": {
+            ""$round"": [
+              ""$update_used_volume"",
+              2
+            ]
+          }
+        }
+      }
+    },
+    {
+      ""$project"": {
+        ""_id"": 0,
+        ""rat_type"": 1,
+        ""total_transaction"": 1,
+        ""mou"": {
+          ""$round"": [
+            ""$mou_raw"",
+            2
+          ]
+        }
+      }
+    }
+  ]
+}"
+14,Premium or Special Numbers,<to fill-up>,N/A,N/A,,,,,
+15,Non-Profit A2P,<to fill-up>,MT,N/A,,,,,
+16,Commercial A2P,<to fill-up>,MT,N/A,,,,,

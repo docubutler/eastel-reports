@@ -1,0 +1,25 @@
+query_id: 15
+title: Non-Profit A2P
+collection: '{{smsc_cdr}}'
+pipeline:
+- $match:
+    $and:
+    - origination_type: SMPP
+    - delivery_date:
+        $gte:
+          $dateVar: start_date
+    - delivery_date:
+        $lt:
+          $dateVar: end_date_exclusive
+    - $or:
+      - addr_src_digits:
+          $regex: ^2.*$
+      - addr_src_digits: '601170337777'
+    - message_delivery_status: success
+- $group:
+    _id: null
+    total_transaction:
+      $sum: 1
+- $project:
+    _id: 0
+    total_transaction: 1
