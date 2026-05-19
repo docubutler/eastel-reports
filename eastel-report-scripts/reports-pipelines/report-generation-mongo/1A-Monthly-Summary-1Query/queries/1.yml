@@ -1,0 +1,590 @@
+query_id: 1
+title: Monthly Summary - Consolidated Request Logs
+collection: "{{request_log}}"
+pipeline:
+  - $match:
+      req_time:
+        $gte:
+          $dateVar: start_date
+        $lt:
+          $dateVar: end_date_exclusive
+      rat_type:
+        $in:
+          - VO
+          - SM
+          - 4G
+          - 5G
+  - $group:
+      _id: null
+      q1_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $rating_group
+                    - ONNET
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $gt:
+                    - $strLenCP:
+                        $ifNull:
+                          - $opposite_number
+                          - ""
+                    - 10
+            - 1
+            - 0
+      q1_mou_minutes:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $rating_group
+                    - ONNET
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $gt:
+                    - $strLenCP:
+                        $ifNull:
+                          - $opposite_number
+                          - ""
+                    - 10
+            - $round:
+                - $divide:
+                    - $act_update_used_volume
+                    - 60
+                - 2
+            - 0
+      q2_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $rating_group
+                    - OFFNET
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $gt:
+                    - $strLenCP:
+                        $ifNull:
+                          - $opposite_number
+                          - ""
+                    - 10
+                - $regexMatch:
+                    input:
+                      $ifNull:
+                        - $opposite_number
+                        - ""
+                    regex: ^60
+            - 1
+            - 0
+      q2_mou_minutes:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $rating_group
+                    - OFFNET
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $gt:
+                    - $strLenCP:
+                        $ifNull:
+                          - $opposite_number
+                          - ""
+                    - 10
+                - $regexMatch:
+                    input:
+                      $ifNull:
+                        - $opposite_number
+                        - ""
+                    regex: ^60
+            - $round:
+                - $divide:
+                    - $act_update_used_volume
+                    - 60
+                - 2
+            - 0
+      q3_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - SM
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+            - 1
+            - 0
+      q3_mou:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - SM
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+            - $round:
+                - $act_update_used_volume
+                - 2
+            - 0
+      q5_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - 4G
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $ne:
+                    - $rating_group
+                    - "500003"
+            - 1
+            - 0
+      q5_mou_mbs:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - 4G
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $ne:
+                    - $rating_group
+                    - "500003"
+            - $round:
+                - $divide:
+                    - $act_update_used_volume
+                    - 1048576
+                - 2
+            - 0
+      q6_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - 5G
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $ne:
+                    - $rating_group
+                    - "500003"
+            - 1
+            - 0
+      q6_mou_mbs:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - 5G
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $ne:
+                    - $rating_group
+                    - "500003"
+            - $round:
+                - $divide:
+                    - $act_update_used_volume
+                    - 1048576
+                - 2
+            - 0
+      q7_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $not:
+                    - $regexMatch:
+                        input:
+                          $ifNull:
+                            - $opposite_number
+                            - ""
+                        regex: ^60
+            - 1
+            - 0
+      q7_mou_raw:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $not:
+                    - $regexMatch:
+                        input:
+                          $ifNull:
+                            - $opposite_number
+                            - ""
+                        regex: ^60
+            - $act_update_used_volume
+            - 0
+      q8_mou_raw:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - SM
+                - $eq:
+                    - $roaming_destination_id
+                    - 87
+                - $not:
+                    - $regexMatch:
+                        input:
+                          $ifNull:
+                            - $opposite_number
+                            - ""
+                        regex: ^60
+            - $act_update_used_volume
+            - 0
+      q9_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - 4G
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+            - 1
+            - 0
+      q9_mou_mbs:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - 4G
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+            - $round:
+                - $divide:
+                    - $act_update_used_volume
+                    - 1048576
+                - 2
+            - 0
+      q10_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - 5G
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+            - 1
+            - 0
+      q10_mou_mbs:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - 5G
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+            - $round:
+                - $divide:
+                    - $act_update_used_volume
+                    - 1048576
+                - 2
+            - 0
+      q11_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $service_type_sub_cd
+                    - MO
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+                - $not:
+                    - $regexMatch:
+                        input:
+                          $ifNull:
+                            - $opposite_number
+                            - ""
+                        regex: ^60
+            - 1
+            - 0
+      q11_mou_minutes:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $service_type_sub_cd
+                    - MO
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+                - $not:
+                    - $regexMatch:
+                        input:
+                          $ifNull:
+                            - $opposite_number
+                            - ""
+                        regex: ^60
+            - $round:
+                - $divide:
+                    - $act_update_used_volume
+                    - 60
+                - 2
+            - 0
+      q12_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $service_type_sub_cd
+                    - MT
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+                - $not:
+                    - $regexMatch:
+                        input:
+                          $ifNull:
+                            - $opposite_number
+                            - ""
+                        regex: ^60
+            - 1
+            - 0
+      q12_mou_minutes:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $eq:
+                    - $service_type_sub_cd
+                    - MT
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+                - $not:
+                    - $regexMatch:
+                        input:
+                          $ifNull:
+                            - $opposite_number
+                            - ""
+                        regex: ^60
+            - $round:
+                - $divide:
+                    - $act_update_used_volume
+                    - 60
+                - 2
+            - 0
+      q13_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - SM
+                - $eq:
+                    - $service_type_sub_cd
+                    - MO
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+            - 1
+            - 0
+      q13_mou:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - SM
+                - $eq:
+                    - $service_type_sub_cd
+                    - MO
+                - $ne:
+                    - $roaming_destination_id
+                    - 87
+            - $round:
+                - $update_used_volume
+                - 2
+            - 0
+      q14_total_transaction:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $or:
+                    - $in:
+                        - $opposite_number
+                        - - "600380008000"
+                          - "60103"
+                          - "60100"
+                          - "6015454"
+                          - "6015300"
+                          - "6015353"
+                          - "6015404"
+                          - "6015444"
+                          - "6015777"
+                    - $and:
+                        - $or:
+                            - $regexMatch:
+                                input:
+                                  $ifNull:
+                                    - $opposite_number
+                                    - ""
+                                regex: ^601300
+                            - $regexMatch:
+                                input:
+                                  $ifNull:
+                                    - $opposite_number
+                                    - ""
+                                regex: ^601700
+                            - $regexMatch:
+                                input:
+                                  $ifNull:
+                                    - $opposite_number
+                                    - ""
+                                regex: ^601800
+                        - $lt:
+                            - $strLenCP:
+                                $ifNull:
+                                  - $opposite_number
+                                  - ""
+                            - 12
+            - 1
+            - 0
+      q14_mou_minutes:
+        $sum:
+          $cond:
+            - $and:
+                - $eq:
+                    - $rat_type
+                    - VO
+                - $or:
+                    - $in:
+                        - $opposite_number
+                        - - "600380008000"
+                          - "60103"
+                          - "60100"
+                          - "6015454"
+                          - "6015300"
+                          - "6015353"
+                          - "6015404"
+                          - "6015444"
+                          - "6015777"
+                    - $and:
+                        - $or:
+                            - $regexMatch:
+                                input:
+                                  $ifNull:
+                                    - $opposite_number
+                                    - ""
+                                regex: ^601300
+                            - $regexMatch:
+                                input:
+                                  $ifNull:
+                                    - $opposite_number
+                                    - ""
+                                regex: ^601700
+                            - $regexMatch:
+                                input:
+                                  $ifNull:
+                                    - $opposite_number
+                                    - ""
+                                regex: ^601800
+                        - $lt:
+                            - $strLenCP:
+                                $ifNull:
+                                  - $opposite_number
+                                  - ""
+                            - 12
+            - $round:
+                - $divide:
+                    - $update_used_volume
+                    - 60
+                - 2
+            - 0
+  - $project:
+      _id: 0
+      q1_total_transaction: 1
+      q1_mou_minutes: 1
+      q2_total_transaction: 1
+      q2_mou_minutes: 1
+      q3_total_transaction: 1
+      q3_mou: 1
+      q5_total_transaction: 1
+      q5_mou_mbs: 1
+      q6_total_transaction: 1
+      q6_mou_mbs: 1
+      q7_total_transaction: 1
+      q7_mou_minutes:
+        $round:
+          - $divide:
+              - $q7_mou_raw
+              - 60
+          - 2
+      q8_mou:
+        $round:
+          - $q8_mou_raw
+          - 2
+      q9_total_transaction: 1
+      q9_mou_mbs: 1
+      q10_total_transaction: 1
+      q10_mou_mbs: 1
+      q11_total_transaction: 1
+      q11_mou_minutes: 1
+      q12_total_transaction: 1
+      q12_mou_minutes: 1
+      q13_total_transaction: 1
+      q13_mou: 1
+      q14_total_transaction: 1
+      q14_mou_minutes: 1

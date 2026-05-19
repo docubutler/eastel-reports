@@ -1,0 +1,44 @@
+query_id: 2
+title: Monthly Summary - Consolidated SMSC CDRs
+collection: "{{smsc_cdr}}"
+pipeline:
+  - $match:
+      delivery_date:
+        $gte:
+          $dateVar: start_date
+        $lt:
+          $dateVar: end_date_exclusive
+      origination_type: SMPP
+      message_delivery_status: success
+  - $group:
+      _id: null
+      q15_total_transaction:
+        $sum:
+          $cond:
+            - $or:
+                - $regexMatch:
+                    input:
+                      $ifNull:
+                        - $addr_src_digits
+                        - ""
+                    regex: ^2
+                - $eq:
+                    - $addr_src_digits
+                    - "601170337777"
+            - 1
+            - 0
+      q16_total_transaction:
+        $sum:
+          $cond:
+            - $regexMatch:
+                input:
+                  $ifNull:
+                    - $addr_src_digits
+                    - ""
+                regex: ^6
+            - 1
+            - 0
+  - $project:
+      _id: 0
+      q15_total_transaction: 1
+      q16_total_transaction: 1

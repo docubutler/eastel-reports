@@ -1,0 +1,22 @@
+# MongoDB connection settings.
+# You can also provide these with environment variables:
+# - MONGO_URI
+# - MONGO_DB
+mongo:
+  uri: "mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+  database: "eastel-data"
+
+report_generation:
+  queries_dir: "queries"
+  template_csv: "report-template.csv"
+  output_csv: "1A-Monthly-Summary-report-April-1Query.csv"
+  query_column_name: "Query"
+  default_collection: "request_logs"
+
+collections:
+  request_log: "request_logs"
+  smsc_cdr: "smsc_cdrs"
+
+variables:
+  start_date: "2026-04-01"
+  end_date: "2026-04-30"
