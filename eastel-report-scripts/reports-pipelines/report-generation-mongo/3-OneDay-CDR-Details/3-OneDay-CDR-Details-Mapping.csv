@@ -1,0 +1,15 @@
+﻿,"Service Type (e.g., IDD Mobile Call, International SMS, Special Number, Voice On-Net, Voice Off-Net, etc.)",Maps to row
+1,Domestic Data 4G,5
+2,Domestic Data 5G,6
+3,Domestic MO SMS (Offnet / Onnet),3
+4,Domestic MO Voice (Onnet),1
+5,Domestic MO Voice (Offnet),2
+6,Domestic IDD MO Voice,7
+7,Domestic IDD MO SMS,8
+8,Roaming Data 4G / 5G,9 and 10
+9,Roaming MT Voice (Camel/S8HR),12
+10,Roaming MO Voice (Camel/S8HR),11
+11,Roaming SMS MO (Camel/S8HR),13
+12,Premium Special Number Voice,14
+13,Non-Profit A2P,15
+14,Commercial A2P,16

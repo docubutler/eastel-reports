@@ -1,0 +1,18 @@
+Domestic SMS,,,
+Service Type,Charge Type,SMS Type,No. of SMS
+SMS,MO,On Net,"2,090.00"
+SMS,MO,Off Net,"2,773.00"
+,,,4863
+,,,
+,,,
+Domestic Voice,,,
+Service Type,Charge Type,Call Type,MOU (min)
+Voice,MO,On Net,"113,860"
+Voice,MO,Off Net,"449,821"
+,,,
+,,,
+,,,
+Domestic Data,,,
+Service Type,Charge Type,Data Type,Usage (Mbyte)
+Data,MO,4G,"969,335,074"
+Data,MO,5G,"442,060,714"

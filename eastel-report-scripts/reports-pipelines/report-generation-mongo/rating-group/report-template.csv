@@ -1,1 +1,1 @@
-report_start_date,report_end_date,count,sum,rating_group
+report_start_date,report_end_date,count,sum(update_used_volume),rating_group

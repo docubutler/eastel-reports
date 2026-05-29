@@ -1,0 +1,15 @@
+{
+  "output_csv": "D:\\DB_repos\\eastel-reports\\eastel-report-scripts\\reports-pipelines\\report-generation-mongo\\rating-group\\rating-group-report-2026-03.csv",
+  "script_start_utc": "2026-05-19T13:16:11.210230+00:00",
+  "script_end_utc": "2026-05-19T13:18:53.728424+00:00",
+  "total_duration_seconds": 162.518,
+  "queries": [
+    {
+      "query_id": "1",
+      "title": "Rating Group Summary",
+      "collection": "request_logs",
+      "row_count": 14,
+      "duration_seconds": 162.057
+    }
+  ]
+}
