@@ -183,7 +183,7 @@ select distinct(rating_group) from iot_portal_tb_request_log;
 Actual duration of the call recorded by the network in seconds.
 
 ### Unit:
-Usually in **seconds**
+Usually in **seconds** for voice and **bytes** for data
 
 ### Example:
 

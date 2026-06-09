@@ -24,9 +24,10 @@ DEFAULT_STATE_COLLECTION = "smsc_cdr_sync_state"
 DEFAULT_BATCH_SIZE = 1000
 DEFAULT_LOCK_TIMEOUT_SECONDS = 3600
 FILE_NAME_PATTERN = re.compile(r"^cdr\.log\.(\d{4}-\d{2}-\d{2})$")
+# Match the field order used by the working MySQL parser. The sample payloads do not
+# contain a real submit_date column, even though some older docs/comments say they do.
 FIELD_NAMES = [
     "delivery_date",
-    "submit_date",
     "addr_src_digits",
     "addr_src_ton",
     "addr_src_npi",
@@ -57,6 +58,17 @@ FIELD_NAMES = [
     "sms_text",
     "reason_for_failure",
 ]
+KNOWN_MESSAGE_DELIVERY_STATUSES = {
+    "temp_failed",
+    "success",
+    "success_esme",
+    "ocs_rejected",
+    "failed",
+    "temp_failed_esme",
+    "partial",
+}
+KNOWN_ORIGINATION_TYPES = {"SMPP", "LOCAL_ORIG", "SS7_MO"}
+KNOWN_MESSAGE_TYPES = {"message", "dlr"}
 
 
 @dataclass(frozen=True)
@@ -483,6 +495,14 @@ def parse_cdr_payload(payload: str) -> tuple[dict[str, Any], list[str]]:
     return parsed, fields
 
 
+def has_shifted_field_mapping(parsed_fields: dict[str, Any]) -> bool:
+    return (
+        parsed_fields.get("addr_dst_npi") in KNOWN_MESSAGE_DELIVERY_STATUSES
+        and parsed_fields.get("message_delivery_status") in KNOWN_ORIGINATION_TYPES
+        and parsed_fields.get("origination_type") in KNOWN_MESSAGE_TYPES
+    )
+
+
 def build_update_operation(
     candidate: FileCandidate,
     line_number: int,
@@ -711,6 +731,16 @@ def process_file(
                 parsed_fields, raw_fields = parse_cdr_payload(payload)
             except Exception:
                 parse_errors += 1
+                continue
+
+            if has_shifted_field_mapping(parsed_fields):
+                parse_errors += 1
+                logger.warning(
+                    "file=%s line=%s detected shifted CDR mapping; skipping corrupt row raw_cdr=%s",
+                    candidate.relative_path,
+                    line_number,
+                    payload,
+                )
                 continue
 
             batch_operations.append(

@@ -36,39 +36,42 @@ So using `MESSAGE_ID` as a unique identifier would risk collapsing distinct CDR 
 
 ## CDR field spec
 
+The Mongo importer follows the same working field order as `smsc_cdr_parser.py`.
+In the real CDR payloads used here, there is no populated `SUBMIT_DATE` column.
+Some rows also include one trailing empty extra column, which the importer keeps in `extra_fields`.
+
 | Position | Column | Meaning |
 | -------- | ------ | ------- |
 | 1 | `DELIVERY_DATE` | Time CDR generated / delivery completed |
-| 2 | `SUBMIT_DATE` | Time SMS reached SMSC |
-| 3 | `ADDR_SRC_DIGITS` | Source number |
-| 4 | `ADDR_SRC_TON` | Source TON |
-| 5 | `ADDR_SRC_NPI` | Source NPI |
-| 6 | `ADDR_DST_DIGITS` | Destination number |
-| 7 | `ADDR_DST_TON` | Destination TON |
-| 8 | `ADDR_DST_NPI` | Destination NPI |
-| 9 | `Message_Delivery_Status` | `success` / `failed` / `ocs_rejected` etc |
-| 10 | `ORIGINATION_TYPE` | `SMPP` / `SS7_MO` / `LOCAL_ORIG` etc |
-| 11 | `MESSAGE_TYPE` | `message` / `dlr` |
-| 12 | `ORIG_SYSTEM_ID` | SMPP system id |
-| 13 | `MESSAGE_ID` | Internal message id |
-| 14 | `DVL_MESSAGE_ID` | SMPP delivery-side message id |
-| 15 | `RECEIPT_LOCAL_MESSAGE_ID` | Original message id for DLR correlation |
-| 16 | `NNN_DIGITS` | MSISDN from SRI response |
-| 17 | `IMSI` | Subscriber IMSI |
-| 18 | `CORR_ID` | Home-routing correlation id |
-| 19 | `ORIGINATOR_SCCP_ADDRESS` | SCCP source address |
-| 20 | `MtServiceCenterAddress` | SMSC GT address |
-| 21 | `ORIG_NETWORK_ID` | Origin network id |
-| 22 | `NETWORK_ID` | Destination network id |
-| 23 | `MPROC_NOTES` | Notes from processing rules |
-| 24 | `MSG_PARTS` | Multipart SMS count |
-| 25 | `CHAR_NUMBERS` | Character count |
-| 26 | `PROCESSING_TIME` | SMSC processing time (ms) |
-| 27 | `DELIVERY_DELAY` | Delivery delay (ms) |
-| 28 | `SCHEDULE_DELIVERY_DELAY` | Scheduled delay |
-| 29 | `DELIVERY_COUNT` | Delivery attempts |
-| 30 | `First 20 characters of SMS` | SMS preview |
-| 31 | `Reason_For_Failure` | Failure reason |
+| 2 | `ADDR_SRC_DIGITS` | Source number |
+| 3 | `ADDR_SRC_TON` | Source TON |
+| 4 | `ADDR_SRC_NPI` | Source NPI |
+| 5 | `ADDR_DST_DIGITS` | Destination number |
+| 6 | `ADDR_DST_TON` | Destination TON |
+| 7 | `ADDR_DST_NPI` | Destination NPI |
+| 8 | `Message_Delivery_Status` | `success` / `failed` / `ocs_rejected` etc |
+| 9 | `ORIGINATION_TYPE` | `SMPP` / `SS7_MO` / `LOCAL_ORIG` etc |
+| 10 | `MESSAGE_TYPE` | `message` / `dlr` |
+| 11 | `ORIG_SYSTEM_ID` | SMPP system id |
+| 12 | `MESSAGE_ID` | Internal message id |
+| 13 | `DVL_MESSAGE_ID` | SMPP delivery-side message id |
+| 14 | `RECEIPT_LOCAL_MESSAGE_ID` | Original message id for DLR correlation |
+| 15 | `NNN_DIGITS` | MSISDN from SRI response |
+| 16 | `IMSI` | Subscriber IMSI |
+| 17 | `CORR_ID` | Home-routing correlation id |
+| 18 | `ORIGINATOR_SCCP_ADDRESS` | SCCP source address |
+| 19 | `MtServiceCenterAddress` | SMSC GT address |
+| 20 | `ORIG_NETWORK_ID` | Origin network id |
+| 21 | `NETWORK_ID` | Destination network id |
+| 22 | `MPROC_NOTES` | Notes from processing rules |
+| 23 | `MSG_PARTS` | Multipart SMS count |
+| 24 | `CHAR_NUMBERS` | Character count |
+| 25 | `PROCESSING_TIME` | SMSC processing time (ms) |
+| 26 | `DELIVERY_DELAY` | Delivery delay (ms) |
+| 27 | `SCHEDULE_DELIVERY_DELAY` | Scheduled delay |
+| 28 | `DELIVERY_COUNT` | Delivery attempts |
+| 29 | `First 20 characters of SMS` | SMS preview |
+| 30 | `Reason_For_Failure` | Failure reason |
 
 ## Run
 
