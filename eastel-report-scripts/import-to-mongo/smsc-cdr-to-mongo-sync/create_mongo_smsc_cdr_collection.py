@@ -11,6 +11,7 @@ DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
 DEFAULT_MONGO_DB = "eastel-data"
 DEFAULT_MONGO_COLLECTION = "smsc_cdrs"
 DEFAULT_STATE_COLLECTION = "smsc_cdr_sync_state"
+DEFAULT_FILE_META_COLLECTION = "smsc_cdr_file_meta"
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,6 +32,11 @@ def parse_args() -> argparse.Namespace:
         "--state-collection",
         default=os.getenv("MONGO_STATE_COLLECTION", DEFAULT_STATE_COLLECTION),
         help="MongoDB state collection name.",
+    )
+    parser.add_argument(
+        "--file-meta-collection",
+        default=os.getenv("MONGO_FILE_META_COLLECTION", DEFAULT_FILE_META_COLLECTION),
+        help="MongoDB permanent file metadata collection name.",
     )
     parser.add_argument(
         "--config",
@@ -95,6 +101,15 @@ def get_cdr_state_collection_name(config: dict[str, Any], default: str) -> str:
     return str(default)
 
 
+def get_cdr_file_meta_collection_name(config: dict[str, Any], default: str) -> str:
+    mongo_config = config.get("mongo", {})
+    if isinstance(mongo_config, dict):
+        value = mongo_config.get("smsc_cdr_file_meta_collection")
+        if value not in (None, ""):
+            return str(value)
+    return str(default)
+
+
 def ensure_collection(db, collection_name: str):
     if collection_name not in db.list_collection_names():
         db.create_collection(collection_name)
@@ -117,54 +132,85 @@ def main() -> None:
         config,
         get_config_value(config, "mongo", "state_collection", "MONGO_STATE_COLLECTION", args.state_collection),
     )
+    file_meta_collection_name = get_cdr_file_meta_collection_name(
+        config,
+        get_config_value(
+            config,
+            "mongo",
+            "file_meta_collection",
+            "MONGO_FILE_META_COLLECTION",
+            args.file_meta_collection,
+        ),
+    )
 
     with get_mongo_client(config) as client:
         db = client[mongo_db_name]
         data_collection = ensure_collection(db, mongo_collection_name)
         state_collection = ensure_collection(db, state_collection_name)
+        file_meta_collection = ensure_collection(db, file_meta_collection_name)
 
         created_indexes = []
         created_indexes.append(
             data_collection.create_index(
-                [("source_path", ASCENDING), ("line_number", ASCENDING)],
-                name="uq_source_path_line_number",
+                [("identity_key", ASCENDING)],
+                name="uq_identity_key",
+                unique=True,
+                partialFilterExpression={"identity_key": {"$exists": True}},
+            )
+        )
+        created_indexes.append(
+            data_collection.create_index(
+                [("server_name", ASCENDING), ("source_file_date", ASCENDING), ("delivery_date", ASCENDING)],
+                name="ix_server_source_file_date_delivery_date",
+            )
+        )
+        created_indexes.append(
+            data_collection.create_index(
+                [("server_name", ASCENDING), ("message_id", ASCENDING)],
+                name="ix_server_message_id",
+            )
+        )
+        created_indexes.append(
+            data_collection.create_index(
+                [("server_name", ASCENDING), ("addr_src_digits", ASCENDING), ("delivery_date", ASCENDING)],
+                name="ix_server_addr_src_digits_delivery_date",
+            )
+        )
+        created_indexes.append(
+            data_collection.create_index(
+                [("server_name", ASCENDING), ("addr_dst_digits", ASCENDING), ("delivery_date", ASCENDING)],
+                name="ix_server_addr_dst_digits_delivery_date",
+            )
+        )
+        created_indexes.append(
+            state_collection.create_index(
+                [("type", ASCENDING), ("mongo_collection", ASCENDING), ("server_name", ASCENDING), ("status", ASCENDING)],
+                name="ix_type_collection_server_status",
+            )
+        )
+        created_indexes.append(
+            state_collection.create_index(
+                [("type", ASCENDING), ("mongo_collection", ASCENDING), ("server_name", ASCENDING), ("expires_at", ASCENDING)],
+                name="ix_type_collection_server_expires_at",
+            )
+        )
+        created_indexes.append(
+            file_meta_collection.create_index(
+                [("mongo_collection", ASCENDING), ("server_name", ASCENDING), ("file_hash", ASCENDING)],
+                name="uq_collection_server_file_hash",
                 unique=True,
             )
         )
         created_indexes.append(
-            data_collection.create_index(
-                [("source_file_date", ASCENDING), ("delivery_date", ASCENDING)],
-                name="ix_source_file_date_delivery_date",
+            file_meta_collection.create_index(
+                [("mongo_collection", ASCENDING), ("server_name", ASCENDING), ("status", ASCENDING)],
+                name="ix_collection_server_status",
             )
         )
         created_indexes.append(
-            data_collection.create_index(
-                [("message_id", ASCENDING)],
-                name="ix_message_id",
-            )
-        )
-        created_indexes.append(
-            data_collection.create_index(
-                [("addr_src_digits", ASCENDING), ("delivery_date", ASCENDING)],
-                name="ix_addr_src_digits_delivery_date",
-            )
-        )
-        created_indexes.append(
-            data_collection.create_index(
-                [("addr_dst_digits", ASCENDING), ("delivery_date", ASCENDING)],
-                name="ix_addr_dst_digits_delivery_date",
-            )
-        )
-        created_indexes.append(
-            state_collection.create_index(
-                [("type", ASCENDING), ("mongo_collection", ASCENDING), ("status", ASCENDING)],
-                name="ix_type_collection_status",
-            )
-        )
-        created_indexes.append(
-            state_collection.create_index(
-                [("type", ASCENDING), ("mongo_collection", ASCENDING), ("file_date", ASCENDING)],
-                name="ix_type_collection_file_date",
+            file_meta_collection.create_index(
+                [("mongo_collection", ASCENDING), ("server_name", ASCENDING), ("file_name", ASCENDING)],
+                name="ix_collection_server_file_name",
             )
         )
 
