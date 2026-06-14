@@ -1,5 +1,7 @@
 import argparse
+import logging
 import os
+import sys
 import time
 import uuid
 from datetime import datetime, timezone
@@ -24,6 +26,7 @@ DEFAULT_BATCH_SIZE = 1000
 DEFAULT_POLL_INTERVAL_SECONDS = 60
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
 DEFAULT_LOCK_TIMEOUT_SECONDS = 3600
+SCRIPT_NAME = "postgres_to_mongo_request_log_sync"
 
 
 def parse_args() -> argparse.Namespace:
@@ -94,6 +97,40 @@ def load_config(config_path: str) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError(f"Config file must contain a YAML object: {path}")
     return data
+
+
+def configure_logging(config: dict[str, Any]) -> logging.Logger:
+    logger = logging.getLogger(SCRIPT_NAME)
+    if logger.handlers:
+        return logger
+
+    log_level_name = str(
+        get_config_value(config, "logging", "level", "PG_TO_MONGO_LOG_LEVEL", "INFO")
+    ).upper()
+    level = getattr(logging, log_level_name, logging.INFO)
+
+    formatter = logging.Formatter(
+        fmt="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    logger.setLevel(level)
+    logger.propagate = False
+
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(formatter)
+    stream_handler.setLevel(level)
+    logger.addHandler(stream_handler)
+
+    log_file = get_config_value(config, "logging", "file_path", "PG_TO_MONGO_LOG_FILE")
+    if log_file:
+        log_path = Path(str(log_file)).expanduser()
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_path, encoding="utf-8")
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(level)
+        logger.addHandler(file_handler)
+
+    return logger
 
 
 def get_config_value(config: dict[str, Any], section: str, key: str, env_name: str, default: Any = None) -> Any:
@@ -401,6 +438,7 @@ def sync_once(
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
+    logger = configure_logging(config)
     postgres_dsn = get_postgres_dsn(config)
 
     mongo_db_name = get_config_value(

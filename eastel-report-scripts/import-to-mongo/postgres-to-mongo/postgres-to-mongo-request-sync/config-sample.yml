@@ -19,3 +19,7 @@ sync:
   continuous: true
   poll_interval_seconds: 60
   lock_timeout_seconds: 3600
+
+logging:
+  level: "INFO"
+  file_path: "D:/var/logs/postgres_to_mongo_request_sync.log"
