@@ -1,0 +1,121 @@
+# MongoDB connection settings.
+# You can also provide these with environment variables:
+# - MONGO_URI
+# - MONGO_DB
+mongo:
+  # Full Mongo connection string.
+  uri: "mongodb+srv://username:password@easteldataanalysis.zwi2ei.mongodb.net/?appName=EastelDataAnalysis"
+  # Database that contains the report collections.
+  database: "eastel-data"
+
+# Report generation paths and output behavior.
+report_generation:
+  # Folder that contains the source query files like 1.yml, 2.yml, etc.
+  queries_dir: "queries"
+  # Input excel template. This file is read but not modified.
+  template_xlsx: "2. CDR-Reconcialation-Report_template.xlsx"
+  # Output excel generated after all queries are executed.
+  output_xlsx: "2-Invoice-Recon-report-April.xlsx"
+  # Optional: if specified, the actual queries used (with variables substituted) will be saved to this file for reference.
+  actual_quries_used_output_file: "2-Invoice-Recon-actual-queries-used-output-file.xlsx" 
+  # Fallback collection used when a query definition does not specify "collection".
+  default_collection: "request_logs"
+
+# Named collections that can be referenced inside the query files as {{request_log}}, etc.
+# Keep collection names here instead of mixing them with normal report variables.
+collections:
+  request_log: "request_logs"
+  usage_log: "usage_logs"
+  smsc_cdr: "smsc_cdrs"
+
+# Runtime variables used by the Mongo query definitions.
+variables:
+  # Inclusive start date for the report window.
+  # The runner converts this to 00:00:00 UTC of the given day.
+  start_date: "2026-04-01T00:00:00Z"
+  # Inclusive end date for the report window.
+  # Important: set the REAL last day you want in the report.
+  # The script automatically derives an exclusive upper bound internally
+  # by adding one day, so you should NOT enter end_date + 1 here.
+  end_date: "2026-04-03T00:00:00Z"
+
+queries:
+
+  Q001:
+    file: queries/1.js
+    output: scalar
+
+  Q002:
+    file: queries/2.js
+    output: scalar
+
+  Q004:
+    file: queries/4.js
+    output: scalar
+  
+  Q005:
+    file: queries/5.js
+    output: scalar
+  
+  Q006:
+    file: queries/6.js
+    output: scalar
+  
+  Q007:
+    file: queries/7.js
+    output: scalar
+
+  Q011:
+    file: queries/11.js
+    output: fixed_table
+    anchor: "%TABLE:Q011%"
+    columns:
+      - service_type
+      - charge_type
+      - country
+      - sms_count
+
+  Q012:
+    file: queries/12.js
+    output: fixed_table
+    anchor: "%TABLE:Q012%"
+    columns:
+      - service_type
+      - charge_type
+      - country
+      - call_count
+
+  Q013:
+    file: queries/13.js
+    output: fixed_table
+    anchor: "%TABLE:Q013%"
+    columns:
+      - service_type
+      - charge_type
+      - country
+      - usage_mbs
+
+  Q014:
+    file: queries/14.js
+    output: fixed_table
+    anchor: "%TABLE:Q014%"
+    columns:
+      - service_type
+      - charge_type
+      - call_type
+      - no_of_calls
+      - mou
+
+  Q015:
+    file: queries/15.js
+    output: fixed_table
+    anchor: "%TABLE:Q015%"
+    columns:
+      - service_type
+      - charge_type
+      - sms_type
+      - sms_count
+
+logging:
+  level: "INFO"
+  file_path: "report-generation_2.CDR-recon.log"

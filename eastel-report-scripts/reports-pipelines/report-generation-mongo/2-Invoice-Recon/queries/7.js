@@ -1,12 +1,12 @@
 /*
-Query 6: Domestic 4G data usage in MB.
+Query 7: Domestic 5G data usage in MB.
 
 Output:
 {
   service_type: "Data",
   charge_type: "Data MO",
-  data_type: "4G",
-  mou_mbs: 969335074
+  data_type: "5G",
+  mou_mbs: 442060714
 }
 */
 
@@ -17,7 +17,7 @@ db.{{request_log}}.aggregate([
         $gte: ISODate("{{start_date}}"),
         $lt: ISODate("{{end_date}}")
       },
-      rat_type: "4G",
+      rat_type: "5G",
       roaming_destination_id: 87,
       rating_group: { $nin: ["500003"] }
     }
@@ -45,7 +45,7 @@ db.{{request_log}}.aggregate([
       _id: 0,
       service_type: { $literal: "Data" },
       charge_type: { $literal: "Data MO" },
-      data_type: { $literal: "4G" },
+      data_type: { $literal: "5G" },
       mou_mbs: 1
     }
   }

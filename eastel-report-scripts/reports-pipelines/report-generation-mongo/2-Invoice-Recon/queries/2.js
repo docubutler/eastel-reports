@@ -1,42 +1,45 @@
 /*
-Query 2:
-Count SMS records by rating group according to config date
+Query 2: Domestic MO SMS total count.
 
 Output:
 {
-  count: 967787,
-  rating_group: 'SM'
+  service_type: "SMS",
+  charge_type: "MO",
+  sms_type: "On Net / Off Net",
+  total: 4863
 }
 */
 
-
-
-db.usage_logs.aggregate([
-  {
-    $match: {
-      rat_type: "SM",
-      usage_start_time: {
-        $gte: ISODate(${start_date}),
-        $lt: ISODate(${end_date})
-      }
-    }
-  },
+db.{{request_log}}.aggregate([
   {
     $group: {
-      _id: "$rating_group",
-      count: { $sum: 1 }
+      _id: null,
+      total: {
+        $sum: {
+          $cond: [
+            {
+              $and: [
+                { $gte: ["$req_time", ISODate("{{start_date}}")] },
+                { $lt: ["$req_time", ISODate("{{end_date}}")] },
+                { $eq: ["$rat_type", "SM"] },
+                { $eq: ["$service_type_sub_cd", "MO"] },
+                { $eq: ["$roaming_destination_id", 87] }
+              ]
+            },
+            1,
+            0
+          ]
+        }
+      }
     }
   },
   {
     $project: {
       _id: 0,
-      rating_group: "$_id",
-      count: 1
-    }
-  },
-  {
-    $sort: {
-      rating_group: 1
+      service_type: { $literal: "SMS" },
+      charge_type: { $literal: "MO" },
+      sms_type: { $literal: "On Net / Off Net" },
+      total: 1
     }
   }
 ]);

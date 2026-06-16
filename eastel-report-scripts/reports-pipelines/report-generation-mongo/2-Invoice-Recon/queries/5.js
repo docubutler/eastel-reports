@@ -1,39 +1,49 @@
 /*
-Query 5: Total MOUs for Voice MO Off Net calls according to config date
+Query 5: Domestic MO voice off-net MOU.
 
 Output:
 {
-  "Service Type": "Voice",
-  "Charge Type": "MO",
-  "Call Type": "Off Net",
-  "MOUs": 1234.56
+  service_type: "Voice",
+  charge_type: "MO",
+  call_type: "Off Net",
+  mou: 449821
 }
-
 */
 
-
-const reportStart = new Date(config.variables.start_date);
-const reportEnd = new Date(config.variables.end_date);
-reportEnd.setDate(reportEnd.getDate() + 1);
-
-db.usage_logs.aggregate([
+db.{{request_log}}.aggregate([
   {
     $match: {
+      req_time: {
+        $gte: ISODate("{{start_date}}"),
+        $lt: ISODate("{{end_date}}")
+      },
       rat_type: "VO",
       service_type_sub_cd: "MO",
-      rating_group: { $in: ["OFFNET"] },
-      usage_start_time: {
-        $gte: ISODate(reportStart),
-        $lt: ISODate(reportEnd)
+      rating_group: "OFFNET",
+      roaming_destination_id: 87,
+      opposite_number: { $regex: "^60" },
+      $expr: {
+        $gt: [
+          { $strLenCP: { $ifNull: ["$opposite_number", ""] } },
+          10
+        ]
       }
     }
   },
   {
     $group: {
-      _id: "$rating_group",
-      MOUs: {
+      _id: null,
+      mou: {
         $sum: {
-          $divide: [{ $toDouble: "$usage_unit" }, 60]
+          $round: [
+            {
+              $divide: [
+                { $toDouble: { $ifNull: ["$act_update_used_volume", 0] } },
+                60
+              ]
+            },
+            2
+          ]
         }
       }
     }
@@ -41,33 +51,10 @@ db.usage_logs.aggregate([
   {
     $project: {
       _id: 0,
-      "Service Type": "Voice",
-      "Charge Type": "MO",
-      "Call Type": {
-        $switch: {
-          branches: [
-            { case: { $eq: ["$_id", "OFFNET"] }, then: "Off Net" }
-          ]
-        }
-      },
-      MOUs: { $round: ["$MOUs", 2] },
-      sort_order: {
-        $cond: [
-          { $eq: ["$_id", "OFFNET"] },
-          1,
-          2
-        ]
-      }
-    }
-  },
-  {
-    $sort: {
-      sort_order: 1
-    }
-  },
-  {
-    $project: {
-      sort_order: 0
+      service_type: { $literal: "Voice" },
+      charge_type: { $literal: "MO" },
+      call_type: { $literal: "Off Net" },
+      mou: 1
     }
   }
 ]);
