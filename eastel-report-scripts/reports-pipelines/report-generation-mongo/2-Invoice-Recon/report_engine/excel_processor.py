@@ -12,8 +12,10 @@ from openpyxl.styles import Font, PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 
 
-SCALAR_PLACEHOLDER_PATTERN = re.compile(r"%(Q\d{3})\.([A-Za-z0-9_]+)%")
-TABLE_PLACEHOLDER_PATTERN = re.compile(r"%TABLE:(Q\d{3})%")
+# Query ids may be legacy Qnnn values or descriptive ids such as
+# intl.-sms / roam-data / premium-and-special-numbers.
+SCALAR_PLACEHOLDER_PATTERN = re.compile(r"%([A-Za-z0-9._-]+)\.([A-Za-z0-9_]+)%")
+TABLE_PLACEHOLDER_PATTERN = re.compile(r"%TABLE:([A-Za-z0-9._-]+)%")
 HEADER_FILL = PatternFill(fill_type="solid", start_color="4F81BD", end_color="4F81BD")
 HEADER_FONT = Font(bold=True, color="FFFFFF")
 

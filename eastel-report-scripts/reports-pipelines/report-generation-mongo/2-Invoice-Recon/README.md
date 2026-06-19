@@ -53,7 +53,7 @@ Important sections:
 - `variables`
   - runtime values used in query files, for example `{{start_date}}` and `{{end_date}}`.
 - `queries`
-  - query registry keyed by query id such as `Q013`.
+  - query registry keyed by query id such as `Q013` or `intl.-sms`.
 
 ## Date Semantics
 
@@ -83,23 +83,23 @@ The day-wise execution mode follows the same exclusive `end_date` behavior.
 Each query entry can contain:
 
 ```yaml
-Q013:
-  file: queries/13.js
+intl.-sms:
+  file: queries/intl.-sms.js
   output: fixed_table
-  anchor: "%TABLE:Q013%"
+  anchor: "%TABLE:intl.-sms%"
   columns:
     - service_type
     - charge_type
     - country
-    - usage_mbs
-  execute_day_wise: true
+    - sms_count
+  execute_day_wise: false
 ```
 
 Supported keys:
 
 - `file`: query file path.
 - `output`: `scalar` or `fixed_table`.
-- `anchor`: required for table outputs referenced by `%TABLE:Qxxx%`.
+- `anchor`: required for table outputs referenced by `%TABLE:<query_id>%`.
 - `columns`: required for `fixed_table`; defines write order.
 - `execute_day_wise`: optional boolean; if `true`, the query is executed one day at a time and aggregated.
 
@@ -153,6 +153,7 @@ Format:
 %Q001.total%
 %Q004.mou%
 %Q006.mou_mbs%
+%intl.-voice.mou_mins%
 ```
 
 Behavior:
@@ -163,6 +164,9 @@ Behavior:
 4. Replace the placeholder in the workbook.
 5. Save the workbook immediately.
 
+Scalar placeholders support both legacy ids like `Q001` and descriptive ids
+such as `intl.-voice`, as long as the query id exists in `config.yml`.
+
 If a scalar field is missing, that query is logged as failed and the placeholder remains unchanged.
 
 ### Table placeholders
@@ -171,6 +175,8 @@ Format:
 
 ```text
 %TABLE:Q011%
+%TABLE:intl.-sms%
+%TABLE:roam-data%
 ```
 
 Behavior:
@@ -232,7 +238,7 @@ The day-wise mode persists progress to:
 
 - `report_generation.daily_checkpoint_output_file`
 
-This workbook contains one sheet per query id, for example `Q013`.
+This workbook contains one sheet per query id, for example `Q013` or `intl.-sms`.
 
 Each query sheet stores:
 
@@ -344,6 +350,21 @@ Example:
 Only one query execution occurs for `Q001`.
 
 For day-wise queries, daily results are additionally cached across runs in the daily checkpoint workbook.
+
+## Query Id Format
+
+The report engine supports two query id styles:
+
+- legacy ids such as `Q001`, `Q013`, `Q015`
+- descriptive ids such as `intl.-sms`, `intl.-voice`, `roam-data`, `roam-sms`, `roam-voice`, `premium-and-special-numbers`
+
+These ids are used consistently across:
+
+- the `queries:` section in `config.yml`
+- scalar placeholders such as `%Q001.total%`
+- table anchors such as `%TABLE:intl.-sms%`
+- daily checkpoint sheet names
+- the rendered queries workbook
 
 ## Validation
 

@@ -1,0 +1,61 @@
+{
+  "_id": {
+    "$oid": "6a2861267b0413f4c24a128f"
+  },
+  "addr_dst_digits": "601164888886",
+  "addr_dst_npi": "1",
+  "addr_dst_ton": "1",
+  "addr_src_digits": "22200",
+  "addr_src_npi": "1",
+  "addr_src_ton": "0",
+  "char_numbers": "0",
+  "corr_id": null,
+  "delivery_count": null,
+  "delivery_date": {
+    "$date": "2026-01-01T00:06:24.189Z"
+  },
+  "delivery_delay": null,
+  "dvl_message_id": null,
+  "extra_fields": [
+    ""
+  ],
+  "file_hash": "cb274002b2ad60dbb1a1218b5b3392a583cef807b0756f6b0ef85dc566a1b172",
+  "file_hash_algorithm": "blake2b-256",
+  "identity_key": "smsc1::cb274002b2ad60dbb1a1218b5b3392a583cef807b0756f6b0ef85dc566a1b172::1",
+  "imsi": "502161994532255",
+  "line_number": 1,
+  "message_delivery_status": "partial",
+  "message_id": "25257",
+  "message_type": "message",
+  "mproc_notes": null,
+  "msg_parts": "0",
+  "mt_service_center_address": "60181000220",
+  "network_id": "0",
+  "nnn_digits": "60160782880",
+  "orig_network_id": "100",
+  "orig_system_id": "USSDC1",
+  "origination_type": "SMPP",
+  "originator_sccp_address": null,
+  "processing_time": null,
+  "raw_cdr": "2026-01-01 00:06:24.189,22200,0,1,601164888886,1,1,partial,SMPP,message,USSDC1,25257,null,null,60160782880,502161994532255,null,null,60181000220,100,0,null,0,0,,,,,\"Great news! Your num\",\"\",\"\"",
+  "raw_fields_count": 31,
+  "raw_line": "2026-01-01 00:06:24,671 DEBUG [org.mobicents.smsc.library.CdrGenerator] 2026-01-01 00:06:24.189,22200,0,1,601164888886,1,1,partial,SMPP,message,USSDC1,25257,null,null,60160782880,502161994532255,null,null,60181000220,100,0,null,0,0,,,,,\"Great news! Your num\",\"\",\"\"",
+  "reason_for_failure": null,
+  "receipt_local_message_id": null,
+  "schedule_delivery_delay": null,
+  "server_name": "smsc1",
+  "sms_text": "Great news! Your num",
+  "source_file": "cdr.log.2026-01-01",
+  "source_file_date": "2026-01-01",
+  "source_file_size": 747,
+  "source_full_path": "/data/eastel/logs/smsc-service/cdr.log.2026-01-01.gz",
+  "source_is_gzip": true,
+  "source_last_modified_at": {
+    "$date": "2026-06-09T20:15:13.695Z"
+  },
+  "source_original_file": "cdr.log.2026-01-01.gz",
+  "source_path": "cdr.log.2026-01-01.gz",
+  "synced_at": {
+    "$date": "2026-06-10T02:53:26.401Z"
+  }
+}

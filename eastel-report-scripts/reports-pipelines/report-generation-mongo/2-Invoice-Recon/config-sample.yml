@@ -27,6 +27,8 @@ collections:
   request_log: "request_logs"
   usage_log: "usage_logs"
   smsc_cdr: "smsc_cdrs"
+  country_code: "country_code"
+  roaming_destination: "roaming_destination"
 
 # Runtime variables used by the Mongo query definitions.
 variables:
@@ -80,6 +82,7 @@ queries:
       - charge_type
       - country
       - call_count
+      - mou_mins
 
   Q013:
     file: queries/13.js
@@ -111,6 +114,37 @@ queries:
       - charge_type
       - sms_type
       - sms_count
+
+  roam-data:
+    file: queries/roam-data.js
+    output: fixed_table
+    anchor: "%TABLE:roam-data%"
+    columns:
+      - service_type
+      - charge_type
+      - country
+      - usage_mbs
+
+  roam-sms:
+    file: queries/roam-sms.js
+    output: fixed_table
+    anchor: "%TABLE:roam-sms%"
+    columns:
+      - service_type
+      - charge_type
+      - country
+      - sms_count
+
+  roam-voice:
+    file: queries/roam-voice.js
+    output: fixed_table
+    anchor: "%TABLE:roam-voice%"
+    columns:
+      - service_type
+      - charge_type
+      - country
+      - call_count
+      - mou
 
 logging:
   level: "INFO"
