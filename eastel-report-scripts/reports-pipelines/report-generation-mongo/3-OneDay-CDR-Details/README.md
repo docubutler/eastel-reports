@@ -15,6 +15,7 @@ It is intentionally different from the placeholder-summary model used in `1A-Mon
 - Writes one CSV row per matched document
 
 This report is not aggregated. Each Mongo document that matches a category produces one output row.
+An optional config flag can exclude `usage_logs` rows where the duration/volume column is exactly zero, and that filter is applied in the Mongo query itself.
 
 ## Source Files In This Folder
 
@@ -57,6 +58,7 @@ The generated CSV omits the `Comments` column and adds verification columns:
 - `Call Duration (second) / Total Volume (UL +DL ) in bytes` is populated as:
   - `act_usage_unit` for `usage_logs`
   - blank for `smsc_cdrs`
+  - if `report_generation.exclude_zero_usage_rows` is enabled, `usage_logs` rows with zero in this column are filtered out by the Mongo query
 
 ### Meaning of `Call Duration (second) / Total Volume (UL +DL ) in bytes`
 
@@ -74,6 +76,7 @@ Supported runtime parameters:
 - `start_date`
 - `end_date`
 - optional `msisdn_a`
+- optional `report_generation.exclude_zero_usage_rows`
 
 Behavior:
 
@@ -81,6 +84,8 @@ Behavior:
    all matching rows in the date range are exported.
 2. If `start_date`, `end_date`, and `msisdn_a` are provided:
    only matching rows for that `msisdn_a` are exported.
+3. If `report_generation.exclude_zero_usage_rows = true`:
+   `usage_logs` rows with `act_usage_unit = 0` are excluded in the `usage_logs` Mongo query before results are returned.
 
 ## Date Filtering
 

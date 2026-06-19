@@ -155,6 +155,7 @@ def get_report_config(config: dict[str, Any], config_path: Path) -> dict[str, An
             base_dir,
             str(report_config.get("output_csv") or "3-OneDay-CDR-Details-output.csv"),
         ),
+        "exclude_zero_usage_rows": bool(report_config.get("exclude_zero_usage_rows", False)),
     }
 
 
@@ -421,7 +422,12 @@ def usage_category_branches() -> list[dict[str, Any]]:
     ]
 
 
-def build_usage_pipeline(start_dt: datetime, end_exclusive_dt: datetime, msisdn_a: str | None) -> list[dict[str, Any]]:
+def build_usage_pipeline(
+    start_dt: datetime,
+    end_exclusive_dt: datetime,
+    msisdn_a: str | None,
+    exclude_zero_usage_rows: bool,
+) -> list[dict[str, Any]]:
     match_stage: dict[str, Any] = {
         "usage_start_time": {
             "$gte": start_dt,
@@ -431,6 +437,11 @@ def build_usage_pipeline(start_dt: datetime, end_exclusive_dt: datetime, msisdn_
     }
     if msisdn_a:
         match_stage["msisdn"] = msisdn_a
+    if exclude_zero_usage_rows:
+        # Optional performance and output filter:
+        # when enabled, exclude usage_log rows with zero duration/volume
+        # directly in Mongo so they are never transferred to Python.
+        match_stage["act_usage_unit"] = {"$gt": 0}
 
     return [
         {"$match": match_stage},
@@ -609,6 +620,7 @@ def main() -> None:
     LOGGER.info("Mongo database: %s", mongo_database)
     LOGGER.info("Usage collection: %s", usage_collection_name)
     LOGGER.info("SMSC collection: %s", smsc_collection_name)
+    LOGGER.info("Exclude zero usage rows: %s", report_config["exclude_zero_usage_rows"])
     LOGGER.info(
         "Report date window | start_date=%s | end_date=%s (inclusive) | end_date_exclusive=%s | msisdn_a=%s",
         variables["start_date"],
@@ -617,7 +629,12 @@ def main() -> None:
         msisdn_a or "(all)",
     )
 
-    usage_pipeline = build_usage_pipeline(start_dt, end_exclusive_dt, msisdn_a)
+    usage_pipeline = build_usage_pipeline(
+        start_dt,
+        end_exclusive_dt,
+        msisdn_a,
+        report_config["exclude_zero_usage_rows"],
+    )
     smsc_pipeline = build_smsc_pipeline(start_dt, end_exclusive_dt, msisdn_a)
 
     with get_mongo_client(config) as mongo_client:
@@ -632,7 +649,11 @@ def main() -> None:
         usage_cursor = mongo_db[usage_collection_name].aggregate(usage_pipeline, **usage_aggregate_options)
         smsc_cursor = mongo_db[smsc_collection_name].aggregate(smsc_pipeline, **smsc_aggregate_options)
 
-        total_rows, category_counts = write_rows_to_csv(output_csv, usage_cursor, smsc_cursor)
+        total_rows, category_counts = write_rows_to_csv(
+            output_csv,
+            usage_cursor,
+            smsc_cursor,
+        )
 
     total_duration_seconds = timer.perf_counter() - overall_started_at
     LOGGER.info("CSV output written: %s", output_csv)
