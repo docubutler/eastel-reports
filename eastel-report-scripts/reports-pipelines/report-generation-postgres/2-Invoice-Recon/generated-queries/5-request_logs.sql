@@ -14,6 +14,12 @@ WITH categories AS (
     UNION ALL SELECT 11, 'Info Services - 15404'
     UNION ALL SELECT 12, 'Info Services - 15444'
     UNION ALL SELECT 13, 'Info Services - 15777'
+    UNION ALL SELECT 14, 'Info Services - 15555'
+    UNION ALL SELECT 15, 'Info Services - 15999'
+    UNION ALL SELECT 16, 'Info Services - 13504'
+    UNION ALL SELECT 17, 'Info Services - 15511'
+    UNION ALL SELECT 18, 'Info Services - 15800'
+    UNION ALL SELECT 19, 'Info Services - 15995'
 ),
 aggregated AS (
     SELECT
@@ -30,14 +36,23 @@ aggregated AS (
             WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
             WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
             WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
+            WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
+            WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
+            WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
+            WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
+            WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
+            WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
             ELSE NULL
         END AS call_type,
-        COUNT(*)::numeric AS no_of_calls,
+        COUNT(DISTINCT t.session_id)::numeric AS no_of_calls,
         ROUND(COALESCE(SUM(t.act_update_used_volume), 0) / 60.0, 2) AS mou
     FROM {{request_log_table}} t
     WHERE t.rat_type = 'VO'
+      AND t.service_type_sub_cd = 'MO'
       AND t.req_time >= '{{start_date}}'
       AND t.req_time < '{{end_date_exclusive}}'
+      AND t.roaming_destination_id = 87
+      AND t.act_update_used_volume > 0
       AND (
           t.opposite_number = '600380008000'
           OR t.opposite_number = '60103'
@@ -48,6 +63,12 @@ aggregated AS (
           OR t.opposite_number = '6015404'
           OR t.opposite_number = '6015444'
           OR t.opposite_number = '6015777'
+          OR t.opposite_number = '6015555'
+          OR t.opposite_number = '6015999'
+            OR t.opposite_number = '6013504'
+            OR t.opposite_number = '6015511'
+            OR t.opposite_number = '6015800'
+            OR t.opposite_number = '6015995'
           OR (t.opposite_number LIKE '601300%' AND LENGTH(t.opposite_number) < 12)
           OR (t.opposite_number LIKE '601700%' AND LENGTH(t.opposite_number) < 12)
           OR (t.opposite_number LIKE '601800%' AND LENGTH(t.opposite_number) < 12)

@@ -7,18 +7,19 @@ Output:
   charge_type: "Total Active Subscriber Current",
   total: 9118
 }
+
+Equivalent PostgreSQL:
+
+SELECT 'Active Subscriber' AS service_type, 'Total Active Subscriber Current' AS charge_type, COUNT(DISTINCT t.msisdn) AS total FROM iot_portal_tb_usage_log t WHERE t.usage_start_time >= '2026-04-01' AND t.usage_start_time < '2026-05-01';
 */
 
-db.{{request_log}}.aggregate([
+db.usage_logs.aggregate([
   {
     $match: {
-      req_time: {
+      usage_start_time: {
         $gte: ISODate("{{start_date}}"),
         $lt: ISODate("{{end_date}}")
-      },
-      service_type_sub_cd: "MO",
-      rat_type: { $in: ["VO", "SM", "4G", "5G"] },
-      msisdn: { $exists: true, $ne: null }
+      }
     }
   },
   {
@@ -28,6 +29,11 @@ db.{{request_log}}.aggregate([
           input: { $toString: "$msisdn" }
         }
       }
+    }
+  },
+  {
+    $match: {
+      msisdn: { $exists: true, $ne: null }
     }
   },
   {

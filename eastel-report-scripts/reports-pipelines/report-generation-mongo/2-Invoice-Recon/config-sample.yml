@@ -53,10 +53,6 @@ queries:
     file: queries/4.js
     output: scalar
   
-  Q005:
-    file: queries/5.js
-    output: scalar
-  
   Q006:
     file: queries/6.js
     output: scalar

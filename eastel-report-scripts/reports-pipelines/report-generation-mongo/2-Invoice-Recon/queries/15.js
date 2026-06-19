@@ -6,6 +6,43 @@ Output columns:
 - charge_type
 - sms_type
 - sms_count
+
+Equivalent PostgreSQL:
+
+WITH params AS (
+    SELECT
+        DATE('2026-04-01') AS report_start_date,
+        DATE('2026-05-01') AS report_end_date
+)
+SELECT
+    'SMS' AS service_type,
+    CASE
+        WHEN (t.addr_src_digits LIKE '2%' OR t.addr_src_digits = '601170337777')
+            THEN 'Non-Profit A2P SMS MT Bundled'
+        WHEN (t.addr_src_digits LIKE '6%' AND t.addr_src_digits <> '601170337777')
+            THEN 'Commercial A2P SMS MT'
+    END AS charge_type,
+    CASE
+        WHEN (t.addr_src_digits LIKE '2%' OR t.addr_src_digits = '601170337777')
+            THEN 'Non Profit A2P (22200,22288,22200EASTEL,601170337777)'
+        WHEN (t.addr_src_digits LIKE '6%' AND t.addr_src_digits <> '601170337777')
+            THEN 'Commercial A2P'
+    END AS sms_type,
+    COUNT(*) AS sms_count
+FROM eastel.smsc_record_parsed t
+JOIN params p
+WHERE t.message_type = 'message'
+  AND t.origination_type = 'SMPP'
+  AND t.message_delivery_status IN ('success', 'success_esme')
+  AND (
+      t.addr_src_digits LIKE '2%'
+      OR t.addr_src_digits = '601170337777'
+      OR t.addr_src_digits LIKE '6%'
+  )
+  AND t.delivery_date >= p.report_start_date
+  AND t.delivery_date < DATE_ADD(p.report_end_date, INTERVAL 1 DAY)
+GROUP BY charge_type, sms_type
+ORDER BY charge_type, sms_type;
 */
 
 db.{{smsc_cdr}}.aggregate([
@@ -15,8 +52,9 @@ db.{{smsc_cdr}}.aggregate([
         $gte: ISODate("{{start_date}}"),
         $lt: ISODate("{{end_date}}")
       },
+      message_type: "message",
       origination_type: "SMPP",
-      message_delivery_status: "success",
+      message_delivery_status: { $in: ["success", "success_esme"] },
       $or: [
         {
           addr_src_digits: {

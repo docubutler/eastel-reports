@@ -14,6 +14,7 @@ class QueryDefinition:
     output: str
     anchor: str | None
     columns: list[str]
+    execute_day_wise: bool
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,7 @@ class ReportGenerationConfig:
     template_xlsx: Path
     output_xlsx: Path
     actual_queries_output_xlsx: Path
+    daily_checkpoint_xlsx: Path
     default_collection: str
 
 
@@ -97,6 +99,10 @@ def load_config(config_path: str | Path) -> AppConfig:
         base_dir,
         str(report_raw.get("actual_quries_used_output_file") or "actual-queries-used.xlsx"),
     )
+    daily_checkpoint_xlsx = resolve_path(
+        base_dir,
+        str(report_raw.get("daily_checkpoint_output_file") or "daily-query-checkpoints.xlsx"),
+    )
     default_collection = str(report_raw.get("default_collection") or "").strip()
 
     collections = _stringify_mapping(data.get("collections") or {}, "collections")
@@ -123,6 +129,7 @@ def load_config(config_path: str | Path) -> AppConfig:
             output=str(query_value.get("output") or "").strip(),
             anchor=str(query_value.get("anchor")).strip() if query_value.get("anchor") is not None else None,
             columns=[str(column) for column in (query_value.get("columns") or [])],
+            execute_day_wise=bool(query_value.get("execute_day_wise", False)),
         )
 
     return AppConfig(
@@ -135,6 +142,7 @@ def load_config(config_path: str | Path) -> AppConfig:
             template_xlsx=template_xlsx,
             output_xlsx=output_xlsx,
             actual_queries_output_xlsx=actual_queries_output_xlsx,
+            daily_checkpoint_xlsx=daily_checkpoint_xlsx,
             default_collection=default_collection,
         ),
         collections=collections,

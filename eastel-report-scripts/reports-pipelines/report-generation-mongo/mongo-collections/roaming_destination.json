@@ -1,0 +1,15 @@
+{
+  "_id": {
+    "$oid": "6a30ede44129d077b4c67af2"
+  },
+  "roaming_destination_id": 4,
+  "service_provider": "uMobile",
+  "country": "Greece",
+  "roaming_destination_name": "Greece: Vodafone",
+  "mcc": 202,
+  "remarks": {
+    "$numberDouble": "NaN"
+  },
+  "created_at": "04/06/2020 14:33",
+  "updated_at": "04/06/2020 14:33"
+}

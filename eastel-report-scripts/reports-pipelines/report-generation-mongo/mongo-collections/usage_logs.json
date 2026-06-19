@@ -1,0 +1,162 @@
+{
+  "_id": {
+    "$oid": "6a0771cfc166b187c19ccabd"
+  },
+  "usage_log_id": {
+    "$numberDecimal": "31438253"
+  },
+  "account_id": {
+    "$numberDecimal": "8"
+  },
+  "act_cost_amount": {
+    "$numberDecimal": "0E-16"
+  },
+  "act_price_amount": {
+    "$numberDecimal": "0.0003822074130000"
+  },
+  "act_usage_unit": {
+    "$numberDecimal": "20519.0000000000000000"
+  },
+  "actual_opposite_number": null,
+  "additional_roaming_destination_id": {
+    "$numberDecimal": "0"
+  },
+  "additional_sim_id": {
+    "$numberDecimal": "0"
+  },
+  "addon_imsi": null,
+  "addon_msisdn": null,
+  "cost_amount": {
+    "$numberDecimal": "0E-16"
+  },
+  "cr_time": {
+    "$date": "2026-01-28T11:00:56.022Z"
+  },
+  "cr_user": {
+    "$numberDecimal": "0"
+  },
+  "currency_id": {
+    "$numberDecimal": "1"
+  },
+  "customer_id": {
+    "$numberDecimal": "6"
+  },
+  "derived": {
+    "service_type": "DATA",
+    "roaming_status": "ROAMING",
+    "opposite_number_type": null,
+    "is_billable": true,
+    "rat_family": "4G"
+  },
+  "iccid": "89601181000000000040",
+  "imei": "358567070016346",
+  "imsi": "502181882999003",
+  "last_grant_cost_per_unit": {
+    "$numberDecimal": "0E-16"
+  },
+  "last_grant_price_per_unit": {
+    "$numberDecimal": "1.86270000E-8"
+  },
+  "last_grant_quota_cost": {
+    "$numberDecimal": "0E-16"
+  },
+  "last_grant_quota_price": {
+    "$numberDecimal": "0.1953182515200000"
+  },
+  "last_grant_quota_unit": {
+    "$numberDecimal": "10485760.0000000000000000"
+  },
+  "last_grant_request_log_id": {
+    "$numberDecimal": "74743542"
+  },
+  "last_grant_shared_bucket_type_ids": "1,2,3",
+  "last_grant_sim_service_plan_bucket_id": {
+    "$numberDecimal": "690"
+  },
+  "last_grant_sim_service_plan_bucket_purchase_seq": {
+    "$numberDecimal": "260128104247808"
+  },
+  "last_grant_sim_service_plan_bucket_start_ref": {
+    "$date": "2026-01-28T00:00:00.000Z"
+  },
+  "last_grant_sim_service_plan_detail_id": {
+    "$numberDecimal": "46829"
+  },
+  "last_grant_sim_service_plan_id": {
+    "$numberDecimal": "46871"
+  },
+  "last_grant_vt": {
+    "$numberDecimal": "3600"
+  },
+  "last_session_req_num": {
+    "$numberDecimal": "0"
+  },
+  "msisdn": "601169070013",
+  "mt_sip_diverted": {
+    "$numberDecimal": "0"
+  },
+  "notes": "00:SUCCESS",
+  "opposite_number": null,
+  "original_voice_call_type": null,
+  "pdp_address": null,
+  "price_amount": {
+    "$numberDecimal": "0.0003822074130000"
+  },
+  "rat_type": "4G",
+  "rate_plan_id": {
+    "$numberDecimal": "15"
+  },
+  "rating_group": "500002",
+  "record_status": {
+    "$numberDecimal": "0"
+  },
+  "roaming_destination_id": {
+    "$numberDecimal": "79"
+  },
+  "roaming_mccmnc": "46000",
+  "service_provider_id": {
+    "$numberDecimal": "1"
+  },
+  "service_type_id": {
+    "$numberDecimal": "1"
+  },
+  "service_type_sub_cd": "N/A",
+  "session_id": "vgwckpa.kpg.node.epc.mnc018.mcc502.3gppnetwork.org;1769597459;1031490875;0c640b03",
+  "sim_id": {
+    "$numberDecimal": "24207"
+  },
+  "sim_master_id": {
+    "$numberDecimal": "9171"
+  },
+  "sim_service_plan_id": {
+    "$numberDecimal": "46871"
+  },
+  "sync_metadata": {
+    "source_table": "iot_portal_tb_usage_log",
+    "synced_at": {
+      "$date": "2026-05-16T09:40:16.782Z"
+    }
+  },
+  "traffic_rat": "4G",
+  "up_time": {
+    "$date": "2026-01-28T11:00:56.022Z"
+  },
+  "up_user": {
+    "$numberDecimal": "0"
+  },
+  "usage_end_time": {
+    "$date": "2026-01-28T11:14:09.938Z"
+  },
+  "usage_start_time": {
+    "$date": "2026-01-28T11:00:56.022Z"
+  },
+  "usage_unit": {
+    "$numberDecimal": "20519.0000000000000000"
+  },
+  "usage_update_time": {
+    "$date": "2026-01-28T11:14:09.938Z"
+  },
+  "user_id": {
+    "$numberDecimal": "0"
+  }
+}

@@ -1,25 +1,54 @@
 /*
-Query 4: Domestic MO voice on-net MOU.
+Query 4: Domestic MO voice on-net and off-net MOU.
 
 Output:
 {
-  service_type: "Voice",
-  charge_type: "MO",
-  call_type: "On Net",
-  mou: 113860
+  onnet_mou: 113860,
+  offnet_mou: 449821
 }
+
+Equivalent PostgreSQL:
+
+SELECT
+    ROUND(
+        SUM(
+            CASE
+                WHEN t.rating_group = 'ONNET' THEN t.act_usage_unit / 60.0
+                ELSE 0
+            END
+        ),
+        2
+    ) AS onnet_mou,
+    ROUND(
+        SUM(
+            CASE
+                WHEN t.rating_group = 'OFFNET' THEN t.act_usage_unit / 60.0
+                ELSE 0
+            END
+        ),
+        2
+    ) AS offnet_mou
+FROM iot_portal_tb_usage_log t
+WHERE t.usage_start_time >= '2026-04-01'
+  AND t.usage_start_time < '2026-05-01'
+  AND t.rat_type = 'VO'
+  AND t.service_type_sub_cd = 'MO'
+  AND t.rating_group IN ('ONNET', 'OFFNET')
+  AND t.roaming_destination_id = 87
+  AND t.opposite_number LIKE '60%'
+  AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) > 10;
 */
 
-db.{{request_log}}.aggregate([
+db.usage_logs.aggregate([
   {
     $match: {
-      req_time: {
+      usage_start_time: {
         $gte: ISODate("{{start_date}}"),
         $lt: ISODate("{{end_date}}")
       },
       rat_type: "VO",
       service_type_sub_cd: "MO",
-      rating_group: "ONNET",
+      rating_group: { $in: ["ONNET", "OFFNET"] },
       roaming_destination_id: 87,
       opposite_number: { $regex: "^60" },
       $expr: {
@@ -33,16 +62,41 @@ db.{{request_log}}.aggregate([
   {
     $group: {
       _id: null,
-      mou: {
+      onnet_mou: {
         $sum: {
-          $round: [
+          $cond: [
+            { $eq: ["$rating_group", "ONNET"] },
             {
-              $divide: [
-                { $toDouble: { $ifNull: ["$act_update_used_volume", 0] } },
-                60
+              $round: [
+                {
+                  $divide: [
+                    { $toDouble: { $ifNull: ["$act_usage_unit", 0] } },
+                    60
+                  ]
+                },
+                2
               ]
             },
-            2
+            0
+          ]
+        }
+      },
+      offnet_mou: {
+        $sum: {
+          $cond: [
+            { $eq: ["$rating_group", "OFFNET"] },
+            {
+              $round: [
+                {
+                  $divide: [
+                    { $toDouble: { $ifNull: ["$act_usage_unit", 0] } },
+                    60
+                  ]
+                },
+                2
+              ]
+            },
+            0
           ]
         }
       }
@@ -51,10 +105,8 @@ db.{{request_log}}.aggregate([
   {
     $project: {
       _id: 0,
-      service_type: { $literal: "Voice" },
-      charge_type: { $literal: "MO" },
-      call_type: { $literal: "On Net" },
-      mou: 1
+      onnet_mou: 1,
+      offnet_mou: 1
     }
   }
 ]);

@@ -1,0 +1,1 @@
+This folder contains sample document of each collection to give an idea what type of document each collection contains. The name of the file is the name of the collection and the sample document is what is found in the actuall collection

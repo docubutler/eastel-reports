@@ -1,0 +1,153 @@
+{
+  "_id": {
+    "$oid": "6a04826e30c0c4e5c670c5a4"
+  },
+  "request_log_id": {
+    "$numberDecimal": "74743499"
+  },
+  "account_id": {
+    "$numberDecimal": "0"
+  },
+  "act_cost_total_used_money": {
+    "$numberDecimal": "0E-16"
+  },
+  "act_cost_update_used_money": {
+    "$numberDecimal": "0E-16"
+  },
+  "act_price_total_used_money": {
+    "$numberDecimal": "0.0000569613660000"
+  },
+  "act_price_update_used_money": {
+    "$numberDecimal": "0E-16"
+  },
+  "act_total_used_volume": {
+    "$numberDecimal": "3058.0000000000000000"
+  },
+  "act_update_used_volume": {
+    "$numberDecimal": "0E-16"
+  },
+  "additional_roaming_destination_id": {
+    "$numberDecimal": "0"
+  },
+  "additional_sim_id": {
+    "$numberDecimal": "0"
+  },
+  "addon_imsi": null,
+  "addon_msisdn": null,
+  "apn": "",
+  "charging_characteristic": null,
+  "cost_currency_cd": "MYR",
+  "cost_exchange_rate": {
+    "$numberDecimal": "1.0000000000000000"
+  },
+  "cost_init_granted_money": {
+    "$numberDecimal": "0E-16"
+  },
+  "cost_total_used_money": {
+    "$numberDecimal": "0E-16"
+  },
+  "cost_update_used_money": {
+    "$numberDecimal": "0E-16"
+  },
+  "cr_time": {
+    "$date": "2026-01-27T22:44:44.743Z"
+  },
+  "cr_user": {
+    "$numberDecimal": "0"
+  },
+  "currency_id": {
+    "$numberDecimal": "1"
+  },
+  "customer_id": {
+    "$numberDecimal": "0"
+  },
+  "display_order": {
+    "$numberDecimal": "0"
+  },
+  "exchange_rate": {
+    "$numberDecimal": "1.0000000000000000"
+  },
+  "iccid": "",
+  "imei": "353994100137402",
+  "imsi": "",
+  "init_granted_volume": {
+    "$numberDecimal": "0E-16"
+  },
+  "msisdn": "",
+  "notes": "00:SUCCESS",
+  "operation_status": "COMM",
+  "opposite_number": null,
+  "price_currency_cd": "MYR",
+  "price_exchange_rate": {
+    "$numberDecimal": "1.0000000000000000"
+  },
+  "price_init_granted_money": {
+    "$numberDecimal": "0E-16"
+  },
+  "price_total_used_money": {
+    "$numberDecimal": "0.0000569613660000"
+  },
+  "price_update_used_money": {
+    "$numberDecimal": "0E-16"
+  },
+  "rat_type": "",
+  "rate_plan_id": {
+    "$numberDecimal": "0"
+  },
+  "rating_group": "500002",
+  "record_status": {
+    "$numberDecimal": "0"
+  },
+  "req_time": {
+    "$date": "2026-01-27T22:44:44.743Z"
+  },
+  "req_type": "T",
+  "roaming_destination_id": {
+    "$numberDecimal": "0"
+  },
+  "roaming_mccmnc": "23415",
+  "service_context": "Ericsson_OCS_V1_0.0.0.10.32251@3gpp.org",
+  "service_provider_id": {
+    "$numberDecimal": "0"
+  },
+  "service_type_id": {
+    "$numberDecimal": "1"
+  },
+  "service_type_sub_cd": "N/A",
+  "session_id": "vgwchxa.shx.node.epc.mnc018.mcc502.3gppnetwork.org;1769553859;1034280765;0e550a04",
+  "session_req_num": {
+    "$numberDecimal": "2"
+  },
+  "sgsn_address": "",
+  "sim_id": {
+    "$numberDecimal": "0"
+  },
+  "sim_service_plan_id": {
+    "$numberDecimal": "0"
+  },
+  "sync_metadata": {
+    "source_table": "iot_portal_tb_request_log",
+    "synced_at": {
+      "$date": "2026-05-13T13:53:50.749Z"
+    }
+  },
+  "total_used_volume": {
+    "$numberDecimal": "3058.0000000000000000"
+  },
+  "up_time": {
+    "$date": "2026-01-27T22:44:44.743Z"
+  },
+  "up_user": {
+    "$numberDecimal": "0"
+  },
+  "update_used_volume": {
+    "$numberDecimal": "0E-16"
+  },
+  "user_id": {
+    "$numberDecimal": "0"
+  },
+  "user_location_info": "8232f45105e132f402000a6008",
+  "validity_time": {
+    "$numberDecimal": "0"
+  }
+}

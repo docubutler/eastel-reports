@@ -1,0 +1,151 @@
+roaming_destination_id,service_provider,country,roaming_destination_name,mcc,remarks,created_at,updated_at
+4,uMobile,Greece,Greece: Vodafone,202,N/A,04/06/2020 14:33,04/06/2020 14:33
+5,uMobile,Netherlands,Netherlands: Vodafone,204,N/A,04/06/2020 14:33,04/06/2020 14:33
+8,uMobile,France,France: Bouygues Telecom,208,N/A,04/06/2020 14:33,04/06/2020 14:33
+9,uMobile,Spain,Spain: Vodafone,214,N/A,04/06/2020 14:33,04/06/2020 14:33
+10,uMobile,Hungary,Hungary: Vodafone,216,N/A,04/06/2020 14:33,04/06/2020 14:33
+11,uMobile,Italy,Italy: Vodafone,222,N/A,04/06/2020 14:33,04/06/2020 14:33
+12,uMobile,Italy,Italy: H3G,222,N/A,04/06/2020 14:33,04/06/2020 14:33
+13,uMobile,Romania,Romania: Vodafone,226,N/A,04/06/2020 14:33,04/06/2020 14:33
+14,uMobile,Switzerland,Switzerland: Swisscom,228,N/A,04/06/2020 14:33,04/06/2020 14:33
+15,uMobile,CzechRepublic,CzechRepublic: Vodafone,230,N/A,04/06/2020 14:33,04/06/2020 14:33
+16,uMobile,Austria,Austria: H3G,232,N/A,04/06/2020 14:33,04/06/2020 14:33
+17,uMobile,UK,UK: Vodafone,234,N/A,04/06/2020 14:33,04/06/2020 14:33
+18,uMobile,UK,UK: H3G,234,N/A,04/06/2020 14:33,04/06/2020 14:33
+19,uMobile,Denmark,Denmark: H3G,238,N/A,04/06/2020 14:33,04/06/2020 14:33
+20,uMobile,Sweden,Sweden: H3G,240,N/A,04/06/2020 14:33,04/06/2020 14:33
+21,uMobile,Russian Federation,Russian Federation: BeeLine/VimpelCom,250,N/A,04/06/2020 14:33,04/06/2020 14:33
+22,uMobile,Germany,Germany: Vodafone,262,N/A,04/06/2020 14:33,04/06/2020 14:33
+23,uMobile,Portugal,Portugal: Vodafone,268,N/A,04/06/2020 14:33,04/06/2020 14:33
+24,uMobile,Ireland,Ireland: Vodafone,272,N/A,04/06/2020 14:33,04/06/2020 14:33
+25,uMobile,Ireland,Ireland: H3G,272,N/A,04/06/2020 14:33,04/06/2020 14:33
+26,uMobile,Albania,Albania: Vodafone,276,N/A,04/06/2020 14:33,04/06/2020 14:33
+27,uMobile,Malta,Malta: Vodafone,278,N/A,04/06/2020 14:33,04/06/2020 14:33
+30,uMobile,Turkey,Turkey: Vodafone-Telsim,286,N/A,04/06/2020 14:33,04/06/2020 14:33
+33,uMobile,Canada,Canada: Rogers,302,N/A,04/06/2020 14:33,04/06/2020 14:33
+34,uMobile,United States,United States: T-Mobile,310,N/A,04/06/2020 14:33,04/06/2020 14:33
+35,uMobile,Guam,Guam: DoCoMoPacific,310,N/A,04/06/2020 14:33,04/06/2020 14:33
+37,uMobile,United States,United States: ATT,310,N/A,04/06/2020 14:33,04/06/2020 14:33
+40,uMobile,Myanmar,Myanmar: MPT,414,N/A,04/06/2020 14:33,04/06/2020 14:33
+43,uMobile,SaudiArabia,SaudiArabia: STC,420,N/A,04/06/2020 14:33,04/06/2020 14:33
+46,uMobile,UAE,UAE: Du,424,N/A,04/06/2020 14:33,04/06/2020 14:33
+48,uMobile,Israel,Israel: Partner,425,N/A,04/06/2020 14:33,04/06/2020 14:33
+49,uMobile,Israel,Israel: Pelephone,425,N/A,04/06/2020 14:33,04/06/2020 14:33
+51,uMobile,Qatar,Qatar: Vodafone,427,N/A,04/06/2020 14:33,04/06/2020 14:33
+56,uMobile,Japan,Japan: NTTDoCoMo,440,N/A,04/06/2020 14:33,04/06/2020 14:33
+59,uMobile,Korea,Korea: SKT,450,N/A,04/06/2020 14:33,04/06/2020 14:33
+60,uMobile,Korea,Korea: KT Freetel Co. Ltd.,450,N/A,04/06/2020 14:33,04/06/2020 14:33
+62,uMobile,Vitenam,Vitenam: Vitenam Mobile,452,N/A,04/06/2020 14:33,04/06/2020 14:33
+64,uMobile,HongKong,HongKong: H3G,454,N/A,04/06/2020 14:33,04/06/2020 14:33
+72,uMobile,Macau,Macau: H3G,455,N/A,04/06/2020 14:33,04/06/2020 14:33
+74,uMobile,Cambodia,Cambodia: Smart,456,N/A,04/06/2020 14:33,04/06/2020 14:33
+75,uMobile,Laos,Laos: Lao Telecom,457,N/A,04/06/2020 14:33,04/06/2020 14:33
+79,uMobile,China,China: ChinaMobile,460,N/A,04/06/2020 14:33,04/06/2020 14:33
+81,uMobile,China,China: Unicom,460,N/A,04/06/2020 14:33,04/06/2020 14:33
+82,uMobile,Taiwan,Taiwan: FET,466,N/A,04/06/2020 14:33,04/06/2020 14:33
+83,uMobile,Taiwan,Taiwan: Chunghwa,466,N/A,04/06/2020 14:33,04/06/2020 14:33
+87,uMobile,Malaysia,Malaysia: Mi3G-UMobile,502,N/A,04/06/2020 14:33,04/06/2020 14:33
+89,uMobile,Malaysia,Malaysia: Celcom,502,N/A,04/06/2020 14:33,04/06/2020 14:33
+92,uMobile,Australia,Australia: Vodafone,505,N/A,04/06/2020 14:33,04/06/2020 14:33
+93,uMobile,Indonesia,Indonesia: Indosat,510,N/A,04/06/2020 14:33,04/06/2020 14:33
+97,uMobile,Philippines,Philippines: Smart,515,N/A,04/06/2020 14:33,04/06/2020 14:33
+99,uMobile,Thailand,Thailand: AIS,520,N/A,04/06/2020 14:33,04/06/2020 14:33
+103,uMobile,Singapore,Singapore: Starhub,525,N/A,04/06/2020 14:33,04/06/2020 14:33
+105,uMobile,NewZealand,NewZealand: Vodafone,530,N/A,04/06/2020 14:33,04/06/2020 14:33
+107,uMobile,Egypt,Egypt: Orange,602,N/A,04/06/2020 14:33,04/06/2020 14:33
+111,uMobile,Ghana,Ghana: Vodafone,620,N/A,04/06/2020 14:33,04/06/2020 14:33
+113,uMobile,CongoDR,CongoDR: Vodafone,630,N/A,04/06/2020 14:33,04/06/2020 14:33
+116,uMobile,Tanzania,Tanzania: Vodafone,640,N/A,04/06/2020 14:33,04/06/2020 14:33
+117,uMobile,Mozambique,Mozambique: Vodafone,643,N/A,04/06/2020 14:33,04/06/2020 14:33
+118,uMobile,Lesotho,Lesotho: Vodafone,651,N/A,04/06/2020 14:33,04/06/2020 14:33
+119,uMobile,SouthAfrica,SouthAfrica: Vodafone,655,N/A,04/06/2020 14:33,04/06/2020 14:33
+120,uMobile,Peru,Peru: Telefonica,716,N/A,04/06/2020 14:33,04/06/2020 14:33
+121,uMobile,Argentina,Argentina: Telefonica,722,N/A,04/06/2020 14:33,04/06/2020 14:33
+122,uMobile,Argentina,Argentina: Personal,722,N/A,04/06/2020 14:33,04/06/2020 14:33
+123,uMobile,Brazil,Brazil: Telefonica,724,N/A,04/06/2020 14:33,04/06/2020 14:33
+124,uMobile,Chile,Chile: Telefonica,730,N/A,04/06/2020 14:33,04/06/2020 14:33
+125,uMobile,Colombia,Colombia: Telefonica,732,N/A,04/06/2020 14:33,04/06/2020 14:33
+126,uMobile,Ecuador,Ecuador: Telefonica,740,N/A,04/06/2020 14:33,04/06/2020 14:33
+127,uMobile,Uruguay,Uruguay: Telefonica,748,N/A,04/06/2020 14:33,04/06/2020 14:33
+131,uMobile,Taiwan,Taiwan: Taiwan Mobile,466,N/A,05/06/2021 0:00,05/06/2021 0:00
+135,uMobile,HongKong,SIP CLIENT,454,N/A,23/10/2021 0:00,23/10/2021 0:00
+435,uMobile,HongKong,HongKong: HKCSL,454,N/A,04/06/2020 14:33,04/06/2020 14:33
+436,uMobile,HongKong,HongKong: Smartone,454,N/A,04/06/2020 14:33,04/06/2020 14:33
+437,uMobile,HongKong,HongKong: CMHK,454,N/A,04/06/2020 14:33,04/06/2020 14:33
+501,uMobile,Indonesia,Indonesia: Hutchison 3,510,N/A,04/06/2020 14:33,04/06/2020 14:33
+502,uMobile,Indonesia,Indonesia: Telkomsel,510,N/A,04/06/2020 14:33,04/06/2020 14:33
+503,uMobile,Japan,Japan: Softbank,440,N/A,04/06/2020 14:33,04/06/2020 14:33
+504,uMobile,Philippines,Philippines: Globe Telecom,515,N/A,04/06/2020 14:33,04/06/2020 14:33
+505,uMobile,Singapore,Singapore: M1,525,N/A,04/06/2020 14:33,04/06/2020 14:33
+506,uMobile,Singapore,Singapore: Simba,525,N/A,04/06/2020 14:33,04/06/2020 14:33
+507,uMobile,Singapore,Singapore: SingTel,525,N/A,04/06/2020 14:33,04/06/2020 14:33
+508,uMobile,Thailand,Thailand: DTAC,520,N/A,04/06/2020 14:33,04/06/2020 14:33
+509,uMobile,Thailand,Thailand:TOT,520,N/A,04/06/2020 14:33,04/06/2020 14:33
+510,uMobile,Thailand,Thailand: Truemove,520,N/A,04/06/2020 14:33,04/06/2020 14:33
+511,uMobile,Australia,Australia: Optus,505,N/A,21/03/2026 19:46,21/03/2026 19:46
+512,uMobile,Azerbaijan,Azerbaijan: Bakcell,400,N/A,21/03/2026 19:46,21/03/2026 19:46
+513,uMobile,Bahrain,Bahrain: STC,426,N/A,21/03/2026 19:46,21/03/2026 19:46
+514,uMobile,Bangladesh,Bangladesh: Grameenphone,470,N/A,21/03/2026 19:46,21/03/2026 19:46
+515,uMobile,Bangladesh,Bangladesh: Banglalink,470,N/A,21/03/2026 19:46,21/03/2026 19:46
+516,uMobile,Belgium,Belgium: Orange/Mobistar,206,N/A,21/03/2026 19:46,21/03/2026 19:46
+517,uMobile,Brunei,Brunei: UNN/DST/Progresif,528,N/A,21/03/2026 19:46,21/03/2026 19:46
+518,uMobile,Cambodia,Cambodia: Cellcard/Mobitel,456,N/A,21/03/2026 19:46,21/03/2026 19:46
+519,uMobile,Cambodia,Cambodia: Metfone,456,N/A,21/03/2026 19:46,21/03/2026 19:46
+520,uMobile,Canada,Canada: Bell,302,N/A,21/03/2026 19:46,21/03/2026 19:46
+521,uMobile,Canada,Canada: Telus,302,N/A,21/03/2026 19:46,21/03/2026 19:46
+522,uMobile,Costa Rica,Costa Rica: Telefonica Latam,712,N/A,21/03/2026 19:46,21/03/2026 19:46
+523,uMobile,Croatia,Croatia: Hrvatski Telekom/T-Mobile,219,N/A,21/03/2026 19:46,21/03/2026 19:46
+524,uMobile,Denmark,Denmark: Telenor,238,N/A,21/03/2026 19:46,21/03/2026 19:46
+525,uMobile,Egypt,Egypt: Vodafone,602,N/A,21/03/2026 19:46,21/03/2026 19:46
+526,uMobile,El Salvador,El Salvador: Telefonica Latam,706,N/A,21/03/2026 19:46,21/03/2026 19:46
+527,uMobile,Finland,Finland: DNA,244,N/A,21/03/2026 19:46,21/03/2026 19:46
+528,uMobile,France,France: Free Mobile,208,N/A,21/03/2026 19:46,21/03/2026 19:46
+529,uMobile,France,France: Orange,208,N/A,21/03/2026 19:46,21/03/2026 19:46
+530,uMobile,Germany,Germany: O2,262,N/A,21/03/2026 19:46,21/03/2026 19:46
+531,uMobile,Greece,Greece: WIND/TIM,202,N/A,21/03/2026 19:46,21/03/2026 19:46
+532,uMobile,Iceland,Iceland: Nova,274,N/A,21/03/2026 19:46,21/03/2026 19:46
+533,uMobile,India,India: Airtel,405,N/A,21/03/2026 19:46,21/03/2026 19:46
+534,uMobile,India,India: Airtel,404,N/A,21/03/2026 19:46,21/03/2026 19:46
+535,uMobile,India,India: Reliance Jio,405,N/A,21/03/2026 19:46,21/03/2026 19:46
+536,uMobile,Ireland,Ireland: EIR/Meteor,272,N/A,21/03/2026 19:46,21/03/2026 19:46
+537,uMobile,Italy,Italy: Iliad,222,N/A,21/03/2026 19:46,21/03/2026 19:46
+538,uMobile,Kazakhstan,Kazakhstan: Beeline/Kar-Tel LLP,401,N/A,21/03/2026 19:46,21/03/2026 19:46
+539,uMobile,Laos,Laos: Unitel,457,N/A,21/03/2026 19:46,21/03/2026 19:46
+540,uMobile,Latvia,Latvia: Bite (SIA Bite),247,N/A,21/03/2026 19:46,21/03/2026 19:46
+541,uMobile,Lithuania,Lithuania: Bite,246,N/A,21/03/2026 19:46,21/03/2026 19:46
+542,uMobile,Luxembourg,Luxembourg: Orange,270,N/A,21/03/2026 19:46,21/03/2026 19:46
+543,uMobile,Macau,Macau: CTM,455,N/A,21/03/2026 19:46,21/03/2026 19:46
+544,uMobile,Mexico,Mexico: Movistar,334,N/A,21/03/2026 19:46,21/03/2026 19:46
+545,uMobile,Moldova,Moldova: Orange,259,N/A,21/03/2026 19:46,21/03/2026 19:46
+546,uMobile,Mongolia,Mongolia: MobiCom,428,N/A,21/03/2026 19:46,21/03/2026 19:46
+547,uMobile,Montenegro,Montenegro: Mtel,297,N/A,21/03/2026 19:46,21/03/2026 19:46
+548,uMobile,Myanmar,Myanmar: Mytel,414,N/A,21/03/2026 19:46,21/03/2026 19:46
+549,uMobile,Myanmar,Myanmar: Telenor,414,N/A,21/03/2026 19:46,21/03/2026 19:46
+550,uMobile,Nepal,Nepal: Nepal Telecom,429,N/A,21/03/2026 19:46,21/03/2026 19:46
+551,uMobile,NewZealand,New Zealand: Spark,530,N/A,21/03/2026 19:46,21/03/2026 19:46
+552,uMobile,Norway,Norway: Telenor,242,N/A,21/03/2026 19:46,21/03/2026 19:46
+553,uMobile,Oman,Oman: VF Oman,422,N/A,21/03/2026 19:46,21/03/2026 19:46
+554,uMobile,Pakistan,Pakistan: Telenor,410,N/A,21/03/2026 19:46,21/03/2026 19:46
+555,uMobile,Poland,Poland: Orange,260,N/A,21/03/2026 19:46,21/03/2026 19:46
+556,uMobile,Poland,Poland: Play,260,N/A,21/03/2026 19:46,21/03/2026 19:46
+557,uMobile,Poland,Poland: Plus / Polkomtel,260,N/A,21/03/2026 19:46,21/03/2026 19:46
+558,uMobile,Romania,Romania: Telekom,226,N/A,21/03/2026 19:46,21/03/2026 19:46
+559,uMobile,Romania,Romania: Orange,226,N/A,21/03/2026 19:46,21/03/2026 19:46
+560,uMobile,SaudiArabia,Saudi Arabia: Zain / MTC,420,N/A,21/03/2026 19:46,21/03/2026 19:46
+561,uMobile,SaudiArabia,Saudi Arabia: Mobily,420,N/A,21/03/2026 19:46,21/03/2026 19:46
+562,uMobile,Slovakia,Slovakia: Telekom,231,N/A,21/03/2026 19:46,21/03/2026 19:46
+563,uMobile,Spain,Spain: Orange,214,N/A,21/03/2026 19:46,21/03/2026 19:46
+564,uMobile,Spain,Spain: Movistar / Telefonica Espania,214,N/A,21/03/2026 19:46,21/03/2026 19:46
+565,uMobile,SRI LANKA,Sri Lanka: Hutchison 3,413,N/A,21/03/2026 19:46,21/03/2026 19:46
+566,uMobile,SRI LANKA,Sri Lanka: Mobitel,413,N/A,21/03/2026 19:46,21/03/2026 19:46
+567,uMobile,Sweden,Sweden: Telenor,240,N/A,21/03/2026 19:46,21/03/2026 19:46
+568,uMobile,Switzerland,Switzerland: Salt / Orange Communications SA,228,N/A,21/03/2026 19:46,21/03/2026 19:46
+569,uMobile,Switzerland,Switzerland: Sunrise,228,N/A,21/03/2026 19:46,21/03/2026 19:46
+570,uMobile,Timor-Leste,Timor-Leste: Telemor,504,N/A,21/03/2026 19:46,21/03/2026 19:46
+571,uMobile,UAE,UAE: E&,424,N/A,21/03/2026 19:46,21/03/2026 19:46
+572,uMobile,UK,UK: O2,234,N/A,21/03/2026 19:46,21/03/2026 19:46
+573,uMobile,Ukraine,Ukraine: Lifecell / Astelit,255,N/A,21/03/2026 19:46,21/03/2026 19:46
+574,uMobile,Ukraine,Ukraine: Vodafone,255,N/A,21/03/2026 19:46,21/03/2026 19:46
+575,uMobile,Uzbekistan,Uzbekistan: Uzbektelecom,434,N/A,21/03/2026 19:46,21/03/2026 19:46
+576,uMobile,Venezuela,Venezuela: Telefonica Latam,734,N/A,21/03/2026 19:46,21/03/2026 19:46
+577,uMobile,Vitenam,Vietnam: Viettel,452,N/A,21/03/2026 19:46,21/03/2026 19:46

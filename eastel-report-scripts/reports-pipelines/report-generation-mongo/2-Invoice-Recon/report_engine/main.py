@@ -13,6 +13,13 @@ from typing import Any
 if __package__ in (None, ""):
     sys.path.insert(0, os.fspath(Path(__file__).resolve().parent.parent))
     from report_engine.config_loader import AppConfig, QueryDefinition, load_config
+    from report_engine.daily_execution import (
+        DailyCheckpointStore,
+        aggregate_scalar_payloads,
+        aggregate_table_payloads,
+        iter_day_windows,
+        summarize_payload,
+    )
     from report_engine.excel_processor import (
         apply_scalar_query_result,
         apply_table_query_result,
@@ -24,6 +31,13 @@ if __package__ in (None, ""):
     from report_engine.validators import validate_config, validate_workbook_references
 else:
     from .config_loader import AppConfig, QueryDefinition, load_config
+    from .daily_execution import (
+        DailyCheckpointStore,
+        aggregate_scalar_payloads,
+        aggregate_table_payloads,
+        iter_day_windows,
+        summarize_payload,
+    )
     from .excel_processor import (
         apply_scalar_query_result,
         apply_table_query_result,
@@ -41,7 +55,7 @@ DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yml"
 
 @dataclass
 class QueryCacheItem:
-    rendered_query: RenderedQuery
+    rendered_queries: list[RenderedQuery]
     execution_result: QueryExecutionResult
 
 
@@ -106,9 +120,117 @@ def _execute_and_cache_query(
     query_definition: QueryDefinition,
     replacements: dict[str, str],
     cache: dict[str, QueryCacheItem],
+    daily_checkpoint_store: DailyCheckpointStore,
 ) -> QueryCacheItem:
     if query_definition.query_id in cache:
         LOGGER.info("Using cached result for query %s", query_definition.query_id)
+        return cache[query_definition.query_id]
+
+    if query_definition.execute_day_wise:
+        LOGGER.info("Day-wise execution enabled for query %s", query_definition.query_id)
+        day_windows = iter_day_windows(
+            start_date_text=config.variables["start_date"],
+            end_date_text=config.variables["end_date"],
+        )
+        successful_records = daily_checkpoint_store.load_successful_records(query_definition.query_id)
+        day_payloads: list[Any] = []
+        rendered_queries: list[RenderedQuery] = []
+        started_at = time.perf_counter()
+
+        for day_window in day_windows:
+            cached_record = successful_records.get(day_window.day_key)
+            if cached_record is not None:
+                LOGGER.info(
+                    "Reusing saved day-wise result | query=%s | day=%s | summary=%s",
+                    query_definition.query_id,
+                    day_window.day_key,
+                    summarize_payload(cached_record.payload if cached_record.payload is not None else {}),
+                )
+                if cached_record.payload is not None:
+                    day_payloads.append(cached_record.payload)
+                rendered_queries.append(
+                    RenderedQuery(
+                        query_id=f"{query_definition.query_id} [{day_window.day_key}]",
+                        query_file=str(query_definition.file),
+                        rendered_query=cached_record.rendered_query,
+                    )
+                )
+                continue
+
+            day_replacements = dict(replacements)
+            day_replacements["start_date"] = day_window.start_iso
+            day_replacements["end_date"] = day_window.end_iso
+            rendered_query = render_query_definition(query_definition, day_replacements)
+
+            LOGGER.info(
+                "Executing day-wise slice | query=%s | day=%s | start=%s | end=%s",
+                query_definition.query_id,
+                day_window.day_key,
+                day_window.start_iso,
+                day_window.end_iso,
+            )
+            try:
+                execution_result = execute_query(
+                    query_id=query_definition.query_id,
+                    rendered_query=rendered_query.rendered_query,
+                    query_definition=query_definition,
+                    mongo_config=config.mongo,
+                )
+                daily_checkpoint_store.save_success(
+                    query_id=query_definition.query_id,
+                    day_key=day_window.day_key,
+                    payload=execution_result.payload,
+                    rendered_query=rendered_query.rendered_query,
+                    duration_seconds=execution_result.duration_seconds,
+                )
+                LOGGER.info(
+                    "Saved day-wise checkpoint | query=%s | day=%s | summary=%s",
+                    query_definition.query_id,
+                    day_window.day_key,
+                    summarize_payload(execution_result.payload),
+                )
+            except Exception as exc:
+                daily_checkpoint_store.save_failure(
+                    query_id=query_definition.query_id,
+                    day_key=day_window.day_key,
+                    rendered_query=rendered_query.rendered_query,
+                    error_message=str(exc),
+                )
+                raise
+
+            day_payloads.append(execution_result.payload)
+            rendered_queries.append(
+                RenderedQuery(
+                    query_id=f"{query_definition.query_id} [{day_window.day_key}]",
+                    query_file=rendered_query.query_file,
+                    rendered_query=rendered_query.rendered_query,
+                )
+            )
+
+        aggregated_payload: Any
+        if query_definition.output == "scalar":
+            aggregated_payload = aggregate_scalar_payloads(payload for payload in day_payloads if isinstance(payload, dict))
+        else:
+            aggregated_payload = aggregate_table_payloads(
+                (payload for payload in day_payloads if isinstance(payload, list)),
+                query_definition.columns,
+            )
+
+        execution_result = QueryExecutionResult(
+            query_id=query_definition.query_id,
+            payload=aggregated_payload,
+            duration_seconds=time.perf_counter() - started_at,
+        )
+        cache[query_definition.query_id] = QueryCacheItem(
+            rendered_queries=rendered_queries,
+            execution_result=execution_result,
+        )
+        LOGGER.info(
+            "Completed day-wise aggregation | query=%s | days=%s | summary=%s",
+            query_definition.query_id,
+            len(day_windows),
+            summarize_payload(aggregated_payload),
+        )
         return cache[query_definition.query_id]
 
     rendered_query = render_query_definition(query_definition, replacements)
@@ -119,7 +241,7 @@ def _execute_and_cache_query(
         mongo_config=config.mongo,
     )
     cache[query_definition.query_id] = QueryCacheItem(
-        rendered_query=rendered_query,
+        rendered_queries=[rendered_query],
         execution_result=execution_result,
     )
     return cache[query_definition.query_id]
@@ -178,6 +300,7 @@ def run_report(config: AppConfig) -> tuple[Path, Path]:
     LOGGER.info("Template workbook: %s", config.report_generation.template_xlsx)
     LOGGER.info("Output workbook: %s", output_workbook_path)
     LOGGER.info("Rendered queries workbook: %s", config.report_generation.actual_queries_output_xlsx)
+    LOGGER.info("Daily checkpoint workbook: %s", config.report_generation.daily_checkpoint_xlsx)
     LOGGER.info("Mongo database configured: %s", config.mongo.database)
     LOGGER.info(
         "Workbook references | scalar_queries=%s | table_queries=%s | total_unique_queries=%s",
@@ -190,18 +313,26 @@ def run_report(config: AppConfig) -> tuple[Path, Path]:
     rendered_queries: list[tuple[str, str, str]] = []
     failures: list[QueryFailure] = []
     successful_queries: list[str] = []
+    daily_checkpoint_store = DailyCheckpointStore(config.report_generation.daily_checkpoint_xlsx)
 
     for query_id in workbook_references.query_ids:
         query_definition = config.queries[query_id]
         LOGGER.info("Preparing query %s from %s", query_id, query_definition.file)
         try:
-            cache_item = _execute_and_cache_query(config, query_definition, replacements, cache)
-            rendered_queries.append(
+            cache_item = _execute_and_cache_query(
+                config,
+                query_definition,
+                replacements,
+                cache,
+                daily_checkpoint_store,
+            )
+            rendered_queries.extend(
                 (
-                    query_id,
-                    cache_item.rendered_query.query_file,
-                    cache_item.rendered_query.rendered_query,
+                    rendered_query.query_id,
+                    rendered_query.query_file,
+                    rendered_query.rendered_query,
                 )
+                for rendered_query in cache_item.rendered_queries
             )
             replacement_count = _apply_query_checkpoint(
                 workbook_path=output_workbook_path,

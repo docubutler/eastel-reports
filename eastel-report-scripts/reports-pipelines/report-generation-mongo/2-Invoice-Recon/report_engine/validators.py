@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .config_loader import AppConfig
+from .daily_execution import parse_utc_datetime
 from .excel_processor import WorkbookReferences
 
 
@@ -24,6 +25,15 @@ def validate_config(config: AppConfig) -> None:
             raise FileNotFoundError(f"Configured query file for {query_id} not found: {query_definition.file}")
         if query_definition.output == "fixed_table" and not query_definition.columns:
             raise ValueError(f"Query {query_id} is fixed_table but has no columns configured.")
+        if query_definition.execute_day_wise:
+            start_date = config.variables.get("start_date")
+            end_date = config.variables.get("end_date")
+            if not start_date or not end_date:
+                raise ValueError(
+                    f"Query {query_id} has execute_day_wise=true but variables.start_date/end_date are missing."
+                )
+            parse_utc_datetime(start_date)
+            parse_utc_datetime(end_date)
 
 
 def validate_workbook_references(config: AppConfig, references: WorkbookReferences) -> None:

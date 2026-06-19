@@ -9,15 +9,17 @@ Output columns:
 - mou
 */
 
-db.{{request_log}}.aggregate([
+db.usage_logs.aggregate([
   {
     $match: {
-      req_time: {
+      usage_start_time: {
         $gte: ISODate("{{start_date}}"),
         $lt: ISODate("{{end_date}}")
       },
       rat_type: "VO",
       service_type_sub_cd: "MO",
+      roaming_destination_id: 87,
+      act_usage_unit: { $gt: 0 },
       $or: [
         { opposite_number: "600380008000" },
         { opposite_number: "60103" },
@@ -28,10 +30,15 @@ db.{{request_log}}.aggregate([
         { opposite_number: "6015404" },
         { opposite_number: "6015444" },
         { opposite_number: "6015777" },
+        { opposite_number: "6015555" },
+        { opposite_number: "6015999" },
+        { opposite_number: "6013504" },
+        { opposite_number: "6015511" },
+        { opposite_number: "6015800" },
+        { opposite_number: "6015995" },
         { opposite_number: { $regex: "^601300" } },
         { opposite_number: { $regex: "^601700" } },
-        { opposite_number: { $regex: "^601800" } },
-        { opposite_number: { $in: ["999", "112", "991", "994", "995"] } }
+        { opposite_number: { $regex: "^601800" } }
       ]
     }
   },
@@ -69,14 +76,19 @@ db.{{request_log}}.aggregate([
               then: "1800 Numbers"
             },
             { case: { $eq: ["$opposite_number", "60103"] }, then: "Directory Assistance -Services 103" },
-            { case: { $in: ["$opposite_number", ["999", "112", "991", "994", "995"]] }, then: "Emergency Numbers" },
             { case: { $eq: ["$opposite_number", "60100"] }, then: "Info Services - 100" },
             { case: { $eq: ["$opposite_number", "6015454"] }, then: "Info Services - 15454" },
             { case: { $eq: ["$opposite_number", "6015300"] }, then: "Info Services - 15300" },
             { case: { $eq: ["$opposite_number", "6015353"] }, then: "Info Services - 15353" },
             { case: { $eq: ["$opposite_number", "6015404"] }, then: "Info Services - 15404" },
             { case: { $eq: ["$opposite_number", "6015444"] }, then: "Info Services - 15444" },
-            { case: { $eq: ["$opposite_number", "6015777"] }, then: "Info Services - 15777" }
+            { case: { $eq: ["$opposite_number", "6015777"] }, then: "Info Services - 15777" },
+            { case: { $eq: ["$opposite_number", "6015555"] }, then: "Info Services - 15555" },
+            { case: { $eq: ["$opposite_number", "6015999"] }, then: "Info Services - 15999" },
+            { case: { $eq: ["$opposite_number", "6013504"] }, then: "Info Services - 13504" },
+            { case: { $eq: ["$opposite_number", "6015511"] }, then: "Info Services - 15511" },
+            { case: { $eq: ["$opposite_number", "6015800"] }, then: "Info Services - 15800" },
+            { case: { $eq: ["$opposite_number", "6015995"] }, then: "Info Services - 15995" }
           ],
           default: null
         }
@@ -94,14 +106,9 @@ db.{{request_log}}.aggregate([
       no_of_calls: { $sum: 1 },
       mou: {
         $sum: {
-          $round: [
-            {
-              $divide: [
-                { $toDouble: { $ifNull: ["$act_update_used_volume", 0] } },
-                60
-              ]
-            },
-            2
+          $divide: [
+            { $toDouble: { $ifNull: ["$act_usage_unit", 0] } },
+            60
           ]
         }
       }
@@ -123,18 +130,28 @@ db.{{request_log}}.aggregate([
             { case: { $eq: ["$_id", "1700 Numbers"] }, then: 3 },
             { case: { $eq: ["$_id", "1800 Numbers"] }, then: 4 },
             { case: { $eq: ["$_id", "Directory Assistance -Services 103"] }, then: 5 },
-            { case: { $eq: ["$_id", "Emergency Numbers"] }, then: 6 },
             { case: { $eq: ["$_id", "Info Services - 100"] }, then: 7 },
             { case: { $eq: ["$_id", "Info Services - 15454"] }, then: 8 },
             { case: { $eq: ["$_id", "Info Services - 15300"] }, then: 9 },
             { case: { $eq: ["$_id", "Info Services - 15353"] }, then: 10 },
             { case: { $eq: ["$_id", "Info Services - 15404"] }, then: 11 },
             { case: { $eq: ["$_id", "Info Services - 15444"] }, then: 12 },
-            { case: { $eq: ["$_id", "Info Services - 15777"] }, then: 13 }
+            { case: { $eq: ["$_id", "Info Services - 15777"] }, then: 13 },
+            { case: { $eq: ["$_id", "Info Services - 15555"] }, then: 14 },
+            { case: { $eq: ["$_id", "Info Services - 15999"] }, then: 15 },
+            { case: { $eq: ["$_id", "Info Services - 13504"] }, then: 16 },
+            { case: { $eq: ["$_id", "Info Services - 15511"] }, then: 17 },
+            { case: { $eq: ["$_id", "Info Services - 15800"] }, then: 18 },
+            { case: { $eq: ["$_id", "Info Services - 15995"] }, then: 19 }
           ],
           default: 999
         }
       }
+    }
+  },
+  {
+    $addFields: {
+      mou: { $round: ["$mou", 2] }
     }
   },
   {
