@@ -32,6 +32,10 @@ DEFAULT_LOCK_TIMEOUT_SECONDS = 3600
 FILE_NAME_PATTERN = re.compile(r"^(cdr\.log\.(\d{4}-\d{2}-\d{2}))(?:\.gz)?$")
 FILE_HASH_ALGORITHM = "blake2b-256"
 FILE_HASH_CHUNK_SIZE = 8 * 1024 * 1024
+DELIVERY_DATE_FORMATS = (
+    "%Y-%m-%d %H:%M:%S.%f",
+    "%Y-%m-%d %H:%M:%S",
+)
 # Match the field order used by the working MySQL parser. The sample payloads do not
 # contain a real submit_date column, even though some older docs/comments say they do.
 FIELD_NAMES = [
@@ -740,11 +744,25 @@ def normalize_field(value: str | None) -> str | None:
     return stripped
 
 
+def normalize_parsed_field(field_name: str, value: str | None) -> Any:
+    normalized = normalize_field(value)
+    if normalized is None:
+        return None
+    if field_name != "delivery_date":
+        return normalized
+    for date_format in DELIVERY_DATE_FORMATS:
+        try:
+            return datetime.strptime(normalized, date_format)
+        except ValueError:
+            continue
+    raise ValueError(f"Unable to parse delivery_date value: {normalized}")
+
+
 def parse_cdr_payload(payload: str) -> tuple[dict[str, Any], list[str]]:
     fields = list(csv.reader([payload]))[0]
     parsed: dict[str, Any] = {}
     for index, field_name in enumerate(FIELD_NAMES):
-        parsed[field_name] = normalize_field(fields[index]) if index < len(fields) else None
+        parsed[field_name] = normalize_parsed_field(field_name, fields[index] if index < len(fields) else None)
     return parsed, fields
 
 
