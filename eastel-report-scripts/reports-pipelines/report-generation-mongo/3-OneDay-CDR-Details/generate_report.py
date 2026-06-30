@@ -376,16 +376,20 @@ def usage_category_branches() -> list[dict[str, Any]]:
                     {"$eq": ["$rat_type", "VO"]},
                     {"$eq": ["$service_type_sub_cd", "MT"]},
                     {"$ne": ["$roaming_destination_id", 87]},
-                    {
-                        "$not": [
-                            {
-                                "$regexMatch": {
-                                    "input": {"$ifNull": ["$opposite_number", ""]},
-                                    "regex": "^60",
-                                }
-                            }
-                        ]
-                    },
+                    # Removed after discussion:
+                    # MT calls should be captured regardless of where the calling party originates.
+                    # In MT CDRs, msisdn is the subscriber and opposite_number is the calling party
+                    # dialing this subscriber.
+                    # {
+                    #     "$not": [
+                    #         {
+                    #             "$regexMatch": {
+                    #                 "input": {"$ifNull": ["$opposite_number", ""]},
+                    #                 "regex": "^60",
+                    #             }
+                    #         }
+                    #     ]
+                    # },
                 ]
             },
             "then": 9,

@@ -116,6 +116,11 @@ Shared output mapping:
 - `IMSI` -> `imsi`
 - `Source Record ID` -> `usage_log_id`
 
+Note for MT CDRs:
+
+- `msisdn` is the subscriber
+- `opposite_number` is the calling party dialing that subscriber
+
 Category logic:
 
 1. `Domestic Data 4G`
@@ -167,7 +172,7 @@ Category logic:
    - `rat_type = 'VO'`
    - `service_type_sub_cd = 'MT'`
    - `roaming_destination_id != 87`
-   - `opposite_number NOT LIKE '60%'`
+   - after discussion, the earlier `opposite_number NOT LIKE '60%'` condition was removed because MT calls should be recorded regardless of where the calling party originates
 10. `Roaming MO Voice (Camel/S8HR)`
    - mapped from monthly row `11`
    - `rat_type = 'VO'`
