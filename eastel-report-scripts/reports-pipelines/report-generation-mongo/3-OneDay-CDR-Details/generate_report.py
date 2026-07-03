@@ -11,6 +11,7 @@ from typing import Any
 import yaml
 from bson.decimal128 import Decimal128
 from pymongo import MongoClient
+from pymongo.errors import OperationFailure
 
 
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
@@ -550,6 +551,29 @@ def build_smsc_pipeline(start_dt: datetime, end_exclusive_dt: datetime, msisdn_a
     ]
 
 
+def aggregate_with_hint_fallback(collection: Any, pipeline: list[dict[str, Any]], aggregate_options: dict[str, Any]) -> Any:
+    try:
+        return collection.aggregate(pipeline, **aggregate_options)
+    except OperationFailure as exc:
+        hint_name = aggregate_options.get("hint")
+        missing_hint = (
+            hint_name
+            and exc.code == 2
+            and "hint provided does not correspond to an existing index" in str(exc)
+        )
+        if not missing_hint:
+            raise
+
+        fallback_options = dict(aggregate_options)
+        fallback_options.pop("hint", None)
+        LOGGER.warning(
+            "Mongo hint '%s' is not available on collection '%s'; retrying without hint.",
+            hint_name,
+            collection.name,
+        )
+        return collection.aggregate(pipeline, **fallback_options)
+
+
 def get_label_for_row(row: dict[str, Any]) -> str:
     category_no = int(row["category_no"])
     if category_no in USAGE_CATEGORY_LABELS:
@@ -650,8 +674,16 @@ def main() -> None:
             usage_aggregate_options["hint"] = "ix_msisdn_usage_start_time"
             smsc_aggregate_options["hint"] = "ix_addr_dst_digits_delivery_date"
 
-        usage_cursor = mongo_db[usage_collection_name].aggregate(usage_pipeline, **usage_aggregate_options)
-        smsc_cursor = mongo_db[smsc_collection_name].aggregate(smsc_pipeline, **smsc_aggregate_options)
+        usage_cursor = aggregate_with_hint_fallback(
+            mongo_db[usage_collection_name],
+            usage_pipeline,
+            usage_aggregate_options,
+        )
+        smsc_cursor = aggregate_with_hint_fallback(
+            mongo_db[smsc_collection_name],
+            smsc_pipeline,
+            smsc_aggregate_options,
+        )
 
         total_rows, category_counts = write_rows_to_csv(
             output_csv,
