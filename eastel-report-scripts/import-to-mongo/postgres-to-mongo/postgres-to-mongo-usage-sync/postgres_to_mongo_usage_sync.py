@@ -4,7 +4,7 @@ import os
 import sys
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -24,6 +24,7 @@ DEFAULT_MONGO_COLLECTION = "usage_logs"
 DEFAULT_STATE_COLLECTION = "usage_log_sync_state"
 DEFAULT_BATCH_SIZE = 1000
 DEFAULT_POLL_INTERVAL_SECONDS = 60
+DEFAULT_MIN_RECORD_AGE_SECONDS = 0
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
 DEFAULT_LOCK_TIMEOUT_SECONDS = 3600
 SCRIPT_NAME = "postgres_to_mongo_usage_sync"
@@ -412,17 +413,35 @@ def validate_usage_collection_indexes(mongo_collection) -> None:
 
 
 def fetch_rows(pg_conn, source_table: str, last_usage_log_id: int, batch_size: int) -> list[dict[str, Any]]:
+    return fetch_rows_with_min_age(
+        pg_conn=pg_conn,
+        source_table=source_table,
+        last_usage_log_id=last_usage_log_id,
+        batch_size=batch_size,
+        min_record_age_seconds=0,
+    )
+
+
+def fetch_rows_with_min_age(
+    pg_conn,
+    source_table: str,
+    last_usage_log_id: int,
+    batch_size: int,
+    min_record_age_seconds: int,
+) -> list[dict[str, Any]]:
     query = sql.SQL(
         """
         SELECT *
         FROM {source_table}
         WHERE usage_log_id > %s
+          AND cr_time <= %s
         ORDER BY usage_log_id ASC
         LIMIT %s
         """
     ).format(source_table=sql.Identifier(source_table))
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=min_record_age_seconds)
     with pg_conn.cursor() as cursor:
-        cursor.execute(query, (last_usage_log_id, batch_size))
+        cursor.execute(query, (last_usage_log_id, cutoff, batch_size))
         return cursor.fetchall()
 
 
@@ -433,6 +452,7 @@ def sync_once(
     source_table: str,
     mongo_collection_name: str,
     batch_size: int,
+    min_record_age_seconds: int,
 ) -> int:
     total_processed = 0
 
@@ -444,7 +464,13 @@ def sync_once(
             mongo_collection=mongo_collection_name,
         )
         fetch_started_at = time.perf_counter()
-        rows = fetch_rows(pg_conn, source_table, last_usage_log_id, batch_size)
+        rows = fetch_rows_with_min_age(
+            pg_conn=pg_conn,
+            source_table=source_table,
+            last_usage_log_id=last_usage_log_id,
+            batch_size=batch_size,
+            min_record_age_seconds=min_record_age_seconds,
+        )
         fetch_duration_seconds = time.perf_counter() - fetch_started_at
         if not rows:
             break
@@ -561,6 +587,15 @@ def main() -> None:
             DEFAULT_LOCK_TIMEOUT_SECONDS,
         )
     )
+    min_record_age_seconds = int(
+        get_config_value(
+            config,
+            "sync",
+            "min_record_age_seconds",
+            "SYNC_MIN_RECORD_AGE_SECONDS",
+            DEFAULT_MIN_RECORD_AGE_SECONDS,
+        )
+    )
     continuous_mode = False if args.run_once else (
         args.continuous
         or str(
@@ -614,6 +649,7 @@ def main() -> None:
                         source_table=source_table,
                         mongo_collection_name=mongo_collection_name,
                         batch_size=batch_size,
+                        min_record_age_seconds=min_record_age_seconds,
                     )
 
                     if processed == 0:

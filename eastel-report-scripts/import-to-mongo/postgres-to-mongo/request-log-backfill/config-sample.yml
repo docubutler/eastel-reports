@@ -11,16 +11,19 @@ mongo:
   uri: "mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority"
   eastel_database: "eastel-data"
   eastel_request_collection: "request_logs"
-  eastel_request_state_collection: "request_log_sync_state"
 
 sync:
   postgres_request_source_table: "iot_portal_tb_request_log"
+
+backfill:
+  mode: "time"
+  time_field: "up_time"
+  start: ""
+  end: ""
+  id_from: ""
+  id_to: ""
+  ids: ""
   batch_size: 1000
-  continuous: true
-  poll_interval_seconds: 60
-  min_record_age_seconds: 7200
-  lock_timeout_seconds: 3600
 
 logging:
   level: "INFO"
-  file_path: "D:/var/logs/postgres_to_mongo_request_sync.log"

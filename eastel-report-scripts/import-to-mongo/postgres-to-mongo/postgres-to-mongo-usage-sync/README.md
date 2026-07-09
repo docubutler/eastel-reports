@@ -27,6 +27,20 @@ The local `config.yml` contains:
 - MongoDB URI, database, usage collection, and state collection
 - usage source table and sync tuning values
 
+Important sync tuning fields:
+
+- `batch_size`
+  Number of rows fetched from PostgreSQL per internal batch. The script already
+  loops until there are no more eligible rows, so one poll cycle can process
+  many batches if needed.
+- `poll_interval_seconds`
+  Sleep time between polling cycles when `continuous: true`.
+- `min_record_age_seconds`
+  Optional settle-time gate. Only rows with `cr_time <= now() - min_record_age_seconds`
+  are eligible to sync. Example: `7200` means "skip rows newer than 120 minutes old".
+- `lock_timeout_seconds`
+  Mongo sync-lock expiry.
+
 ## Run
 
 ```powershell

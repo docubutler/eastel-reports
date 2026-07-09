@@ -29,6 +29,20 @@ The local `config.yml` contains:
 - MongoDB URI, database, request collection, and state collection
 - request source table and sync tuning values
 
+Important sync tuning fields:
+
+- `batch_size`
+  Number of rows fetched from PostgreSQL per internal batch. The script already
+  loops until there are no more eligible rows, so this is not a hard cap for one
+  poll cycle.
+- `poll_interval_seconds`
+  Sleep time between polling cycles when `continuous: true`.
+- `min_record_age_seconds`
+  Optional settle-time gate. Only rows with `cr_time <= now() - min_record_age_seconds`
+  are eligible to sync. Example: `7200` means "skip rows newer than 120 minutes old".
+- `lock_timeout_seconds`
+  Mongo sync-lock expiry.
+
 ## Run
 
 ### Foreground (with console output)

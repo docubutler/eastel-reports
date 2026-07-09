@@ -413,6 +413,22 @@ For day-wise queries, the workbook stores one rendered query entry per day slice
 
 ## Running the Report
 
+Install dependencies first:
+
+```powershell
+pip install PyYAML pymongo openpyxl
+```
+
+Recommended operator entry point:
+
+```powershell
+py .\generate_report.py
+```
+
+That wrapper calls the underlying report engine and is the simplest command for day-to-day use.
+
+Equivalent direct engine entry point:
+
 From the `2-Invoice-Recon` folder:
 
 ```powershell
@@ -426,6 +442,8 @@ py reports-pipelines/report-generation-mongo/2-Invoice-Recon/report_engine/main.
 ```
 
 ## Running a Single Query
+
+For query-level testing without generating the full workbook:
 
 To render and execute one configured query file:
 
