@@ -7,6 +7,190 @@ Output columns:
 - call_type
 - no_of_calls
 - mou
+
+Equivalent PostgreSQL:
+
+SELECT
+    'Voice' AS service_type,
+    'Premium and Special Numbers' AS charge_type,
+    CASE
+        WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
+        WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
+        WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
+        WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
+        WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
+        WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
+        WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
+        WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
+        WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
+        WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
+        WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
+        WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
+        WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
+        WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
+        WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
+        WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
+        WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
+        WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+        ELSE NULL
+    END AS call_type,
+    COUNT(*) AS no_of_calls,
+    ROUND(SUM(COALESCE(t.act_usage_unit, 0)::numeric) / 60, 2) AS mou
+FROM iot_portal_tb_usage_log t
+WHERE t.usage_start_time >= '2026-04-01'
+  AND t.usage_start_time < '2026-05-01'
+  AND t.rat_type = 'VO'
+  AND t.service_type_sub_cd = 'MO'
+  AND t.roaming_destination_id = 87
+  AND t.act_usage_unit > 0
+  AND (
+        t.opposite_number = '600380008000'
+        OR t.opposite_number IN (
+            '60103', '60100', '6015454', '6015300', '6015353', '6015404',
+            '6015444', '6015777', '6015555', '6015999', '6013504', '6015511',
+            '6015800', '6015995'
+        )
+        OR t.opposite_number LIKE '601300%'
+        OR t.opposite_number LIKE '601700%'
+        OR t.opposite_number LIKE '601800%'
+      )
+GROUP BY
+    CASE
+        WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
+        WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
+        WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
+        WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
+        WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
+        WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
+        WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
+        WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
+        WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
+        WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
+        WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
+        WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
+        WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
+        WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
+        WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
+        WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
+        WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
+        WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+        ELSE NULL
+    END
+HAVING
+    CASE
+        WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
+        WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
+        WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
+        WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
+        WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
+        WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
+        WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
+        WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
+        WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
+        WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
+        WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
+        WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
+        WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
+        WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
+        WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
+        WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
+        WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
+        WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+        ELSE NULL
+    END IS NOT NULL
+ORDER BY
+    CASE
+        WHEN
+            CASE
+                WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
+                WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
+                WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
+                WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
+                WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
+                WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
+                WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
+                WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
+                WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
+                WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
+                WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
+                WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
+                WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
+                WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
+                WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
+                WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
+                WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
+                WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+                ELSE NULL
+            END = '1 MOCC - 03-8000 8000' THEN 1
+        WHEN
+            CASE
+                WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
+                WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
+                WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
+                WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
+                WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
+                WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
+                WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
+                WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
+                WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
+                WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
+                WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
+                WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
+                WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
+                WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
+                WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
+                WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
+                WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
+                WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+                ELSE NULL
+            END = '1300 Numbers' THEN 2
+        WHEN
+            CASE
+                WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
+                WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
+                WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
+                WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
+                WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
+                WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
+                WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
+                WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
+                WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
+                WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
+                WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
+                WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
+                WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
+                WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
+                WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
+                WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
+                WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
+                WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+                ELSE NULL
+            END = '1700 Numbers' THEN 3
+        WHEN
+            CASE
+                WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
+                WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
+                WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
+                WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
+                WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
+                WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
+                WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
+                WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
+                WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
+                WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
+                WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
+                WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
+                WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
+                WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
+                WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
+                WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
+                WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
+                WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+                ELSE NULL
+            END = '1800 Numbers' THEN 4
+        ELSE 999
+    END,
+    call_type;
 */
 
 db.usage_logs.aggregate([

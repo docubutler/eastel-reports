@@ -25,17 +25,9 @@ db.{{request_log}}.aggregate([
   {
     $group: {
       _id: null,
-      mou_mbs: {
+      total_bytes: {
         $sum: {
-          $round: [
-            {
-              $divide: [
-                { $toDouble: { $ifNull: ["$act_update_used_volume", 0] } },
-                1048576
-              ]
-            },
-            2
-          ]
+          $toDecimal: { $ifNull: ["$act_update_used_volume", 0] }
         }
       }
     }
@@ -46,7 +38,17 @@ db.{{request_log}}.aggregate([
       service_type: { $literal: "Data" },
       charge_type: { $literal: "Data MO" },
       data_type: { $literal: "5G" },
-      mou_mbs: 1
+      mou_mbs: {
+        $round: [
+          {
+            $divide: [
+              "$total_bytes",
+              { $toDecimal: 1048576 }
+            ]
+          },
+          2
+        ]
+      }
     }
   }
 ]);
