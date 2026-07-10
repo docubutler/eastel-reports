@@ -11,6 +11,7 @@ mongo:
   uri: "mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority"
   eastel_database: "eastel-data"
   eastel_usage_collection: "usage_logs"
+  eastel_usage_synced_collection: "usage_synced"
 
 sync:
   postgres_usage_source_table: "iot_portal_tb_usage_log"
@@ -20,6 +21,7 @@ backfill:
   time_field: "usage_update_time"
   start: ""
   end: ""
+  min_record_age_seconds: 7200
   id_from: ""
   id_to: ""
   ids: ""
