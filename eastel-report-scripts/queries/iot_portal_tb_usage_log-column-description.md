@@ -225,6 +225,7 @@ Output:"rat_type"
 "5G" -- data
 "VO" -- voice
 "SM" -- sms
+"SPNUM" -- special numbers added as of 14th June '26
 \N
 */
 
