@@ -13,5 +13,3 @@ No.,Services Type,Anchor Service Descriptions,Event Direction (MO/MT),Network Ty
 12,Intl Roaming Voice (MT),<to fill-up>,MT,N/A,%12.total_transaction%,%12.mou_minutes%,,,
 13,Intl Roaming SMS (MO),<to fill-up>,MO,N/A,%13.total_transaction%,,%13.mou%,,
 14,Premium or Special Numbers,<to fill-up>,N/A,N/A,%14.total_transaction%,%14.mou_minutes%,,,
-15,Non-Profit A2P,<to fill-up>,MT,N/A,%15.total_transaction%,,%15.total_transaction%,,
-16,Commercial A2P,<to fill-up>,MT,N/A,%16.total_transaction%,,%16.total_transaction%,,

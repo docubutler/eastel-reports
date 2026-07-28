@@ -272,6 +272,9 @@ def execute_queries(
     queries_dir: Path,
     variables: dict[str, str],
     selected_query_ids: set[str],
+    template_csv: Path | None = None,
+    output_csv: Path | None = None,
+    query_column_name: str | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, str], list[dict[str, Any]]]:
     if not queries_dir.exists():
         raise FileNotFoundError(f"Split queries directory not found: {queries_dir}")
@@ -335,6 +338,19 @@ def execute_queries(
                 len(rows),
                 duration_seconds,
             )
+            if template_csv is not None and output_csv is not None and query_column_name is not None:
+                populate_template(
+                    template_csv=template_csv,
+                    output_csv=output_csv,
+                    query_column_name=query_column_name,
+                    query_results=query_results,
+                    rendered_queries=rendered_queries,
+                )
+                LOGGER.info(
+                    "Partial CSV output written after query id=%s: %s",
+                    query_id,
+                    output_csv,
+                )
 
     return query_results, rendered_queries, query_timings
 
@@ -428,6 +444,9 @@ def main() -> None:
             split_queries_dir,
             variables,
             set(referenced_query_ids),
+            template_csv=template_csv,
+            output_csv=output_csv,
+            query_column_name=query_column_name,
         )
 
     populate_template(
