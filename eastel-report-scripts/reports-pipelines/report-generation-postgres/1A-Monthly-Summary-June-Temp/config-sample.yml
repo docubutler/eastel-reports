@@ -1,0 +1,36 @@
+# PostgreSQL connection settings.
+# You can also provide these with environment variables:
+# - POSTGRES_DSN
+# - PGHOST
+# - PGPORT
+# - PGDATABASE
+# - PGUSER
+# - PGPASSWORD
+# - PGSSLMODE
+postgres:
+  dsn: ""
+  host: "localhost"
+  port: 5432
+  database: "anchor_iot"
+  user: "your_user"
+  password: "your_password"
+  sslmode: "disable"
+
+# Report generation paths and output behavior.
+report_generation:
+  source_queries_file: "queries.sql"
+  split_queries_dir: "generated-queries"
+  template_csv: "report-template.csv"
+  output_csv: "report-output.csv"
+  query_column_name: "Query"
+  default_table: "iot_portal_tb_usage_log"
+
+tables:
+  usage_log_current_table: "iot_portal_tb_usage_log"
+  usage_log_old_table: "iot_portal_tb_usage_log_old202606"
+  smsc_cdr_table: "smsc_cdrs"
+
+variables:
+  start_date: "2026-06-01"
+  end_date: "2026-06-30"
+  account_id: "29"

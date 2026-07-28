@@ -1,0 +1,29 @@
+-- Query 5: 4G Data
+
+WITH usage_logs AS (
+    SELECT *
+    FROM {{usage_log_old_table}}
+    WHERE usage_start_time >= '{{start_date}}'
+      AND usage_start_time < '{{end_date_exclusive}}'
+      AND account_id = {{account_id}}
+    UNION ALL
+    SELECT *
+    FROM {{usage_log_current_table}}
+    WHERE usage_start_time >= '{{start_date}}'
+      AND usage_start_time < '{{end_date_exclusive}}'
+      AND account_id = {{account_id}}
+)
+SELECT
+    t.rat_type,
+    COUNT(*) AS total_transaction,
+    SUM(ROUND(t.act_usage_unit, 2)) AS mou,
+    SUM(ROUND((t.act_usage_unit / 1048576), 2)) AS mou_mbs,
+    t.roaming_destination_id
+FROM usage_logs t
+WHERE
+    t.rat_type IN ('4G')
+    AND t.roaming_destination_id = 87
+    AND t.rating_group NOT IN ('500003')
+GROUP BY
+    t.rat_type,
+    t.roaming_destination_id;
