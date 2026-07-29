@@ -1,0 +1,105 @@
+general:
+  application_name: "HLR Reconciliation"
+  version: "1.0.0"
+  environment: "dev"
+  timezone: "Asia/Karachi"
+
+scheduler:
+  processing_day: 1
+  processing_time: "02:00"
+
+transfer:
+  protocol: "sftp"  # sftp, ftp, or local
+  host: "${HLR_TRANSFER_HOST}"
+  port: 22
+  username: "${HLR_TRANSFER_USERNAME}"
+  password: "${HLR_TRANSFER_PASSWORD}"
+  remote_directory: "/remote/hlr"
+  local_download_directory: "./data/downloads"
+  archive_directory: "./data/archive"
+  temporary_directory: "./data/tmp"
+  file_pattern: "MVNO_ANCHOR_*.tar.gz"
+  timeout_seconds: 60
+  retry_count: 3
+  local_source_file: ""  # only used when protocol: local
+
+hlr:
+  csv_delimiter: ","
+  encoding: "utf-8"
+  required_headers:
+    - "IMSI"
+    - "MSISDN"
+    - "IMEISV"
+  archive_retention_days: 365
+
+boss:
+  host: "${BOSS_MYSQL_HOST}"
+  port: 3306
+  database: "${BOSS_MYSQL_DATABASE}"
+  username: "${BOSS_MYSQL_USERNAME}"
+  password: "${BOSS_MYSQL_PASSWORD}"
+  connection_timeout_seconds: 30
+  # Query contract: first selected column must be msisdn, second selected column must be imsi.
+  sql_query: |
+    SELECT msisdn, imsi
+    FROM telco.sim_registrations
+    WHERE status = 'ACTIVE';
+
+iot:
+  host: "${IOT_POSTGRES_HOST}"
+  port: 5432
+  database: "${IOT_POSTGRES_DATABASE}"
+  username: "${IOT_POSTGRES_USERNAME}"
+  password: "${IOT_POSTGRES_PASSWORD}"
+  connection_timeout_seconds: 30
+  sslmode: "prefer"
+  # Query contract: first selected column must be msisdn, second selected column must be imsi.
+  sql_query: |
+    SELECT msisdn, imsi
+    FROM your_iot_table
+    WHERE status = 'ACTIVE';
+
+mongo:
+  uri: "${MONGO_URI}"
+  database: "eastel-data"
+  collections:
+    execution_history: "execution_history"
+    hlr_records: "hlr_records"
+    comparison_results: "comparison_results"
+  insert_batch_size: 5000
+
+reporting:
+  report_directory: "./reports"
+  filename_format: "HLR_SYNC_REPORT_{batch_id}.csv"
+  csv_delimiter: ","
+  output_columns:
+    - "MSISDN"
+    - "IMSI"
+    - "inBSS"
+    - "inCRM"
+    - "inHLR"
+
+email:
+  enabled: true
+  smtp_server: "${SMTP_SERVER}"
+  port: 587
+  use_tls: true
+  use_ssl: false
+  username: "${SMTP_USERNAME}"
+  password: "${SMTP_PASSWORD}"
+  sender: "no-reply@example.com"
+  recipients:
+    - "ops@example.com"
+  cc: []
+  bcc: []
+  subject_template: "HLR Sync Report {processing_month}"
+  body_template: |
+    HLR reconciliation for {processing_month} completed.
+
+logging:
+  log_directory: "./logs"
+  log_filename: "hlr_reconciliation.log"
+  log_level: "INFO"
+  rotation_when: "midnight"
+  rotation_interval: 1
+  retention_count: 30
