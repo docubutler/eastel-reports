@@ -38,6 +38,7 @@ from postgres_to_mongo_request_log_sync import (
 
 
 DEFAULT_MISMATCH_SAMPLE_LIMIT = 100
+DEFAULT_DETAIL_DIFF_LIMIT = 20
 IGNORED_PATHS = {("_id",), ("sync_metadata", "synced_at")}
 
 
@@ -92,6 +93,12 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_MISMATCH_SAMPLE_LIMIT,
         help="Maximum number of mismatched request_log_id values to print.",
     )
+    parser.add_argument(
+        "--detail-diff-limit",
+        type=int,
+        default=DEFAULT_DETAIL_DIFF_LIMIT,
+        help="ID mode only: maximum field differences to print per mismatched document.",
+    )
     return parser.parse_args()
 
 
@@ -104,6 +111,8 @@ def build_effective_inspect_args(args: argparse.Namespace, config: dict[str, Any
             effective.mismatch_sample_limit = int(config_value)
     if effective.mismatch_sample_limit < 0:
         raise ValueError("mismatch_sample_limit cannot be negative.")
+    if effective.detail_diff_limit < 0:
+        raise ValueError("detail_diff_limit cannot be negative.")
     return effective
 
 
@@ -127,6 +136,13 @@ def int_id(value: Any) -> int:
 
 def values_equal(expected: Any, actual: Any) -> bool:
     return comparable_value(expected) == comparable_value(actual)
+
+
+def display_value(value: Any) -> str:
+    text = repr(comparable_value(value))
+    if len(text) > 240:
+        return text[:237] + "..."
+    return text
 
 
 def expected_projection(expected_doc: dict[str, Any]) -> dict[str, int]:
@@ -175,12 +191,33 @@ def first_mismatch_path(expected_doc: dict[str, Any], mongo_doc: dict[str, Any])
     return ""
 
 
+def collect_field_diffs(
+    expected_doc: dict[str, Any],
+    mongo_doc: dict[str, Any],
+    limit: int,
+) -> list[tuple[str, Any, Any]]:
+    diffs = []
+    if limit <= 0:
+        return diffs
+    for path, expected_value in expected_paths(expected_doc):
+        found, actual_value = get_nested(mongo_doc, path)
+        if not found:
+            diffs.append((".".join(path), expected_value, "<missing_field>"))
+        elif not values_equal(expected_value, actual_value):
+            diffs.append((".".join(path), expected_value, actual_value))
+        if len(diffs) >= limit:
+            break
+    return diffs
+
+
 def inspect_rows(
     mongo_collection,
     rows: list[dict[str, Any]],
     source_table: str,
     sample_limit: int,
     sample_ids: list[int],
+    detail_diff_limit: int = 0,
+    print_detail_diffs: bool = False,
 ) -> tuple[int, int]:
     if not rows:
         return 0, 0
@@ -228,6 +265,16 @@ def inspect_rows(
             batch_sample_ids.append(request_log_id)
         if mismatch_path and mismatch_path not in batch_mismatch_paths and len(batch_mismatch_paths) < 5:
             batch_mismatch_paths.append(mismatch_path)
+        if print_detail_diffs and is_mismatched and mongo_doc is not None:
+            diffs = collect_field_diffs(expected_doc, mongo_doc, detail_diff_limit)
+            log(f"detailed diffs for request_log_id={request_log_id}, diff_count_shown={len(diffs)}")
+            for path, expected_value, actual_value in diffs:
+                log(
+                    f"  {path}: postgres_expected={display_value(expected_value)} "
+                    f"mongo_actual={display_value(actual_value)}"
+                )
+        elif print_detail_diffs and is_mismatched:
+            log(f"detailed diffs for request_log_id={request_log_id}: Mongo document is missing")
 
     log(
         f"compared {len(rows)} request rows in {time.perf_counter() - inspect_started_at:.3f}s, "
@@ -409,6 +456,8 @@ def main() -> None:
                     source_table,
                     args.mismatch_sample_limit,
                     sample_ids,
+                    args.detail_diff_limit,
+                    True,
                 )
                 print_summary(
                     total_rows,
