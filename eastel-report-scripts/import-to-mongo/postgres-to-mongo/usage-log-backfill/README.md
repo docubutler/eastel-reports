@@ -155,6 +155,24 @@ prints up to 100 mismatched IDs; override that with:
 py .\inspect_usage_logs_sync.py --mode ids --ids 202170656,202170657 --mismatch-sample-limit 250
 ```
 
+When you need an actual field-by-field comparison for known bad rows, use
+`ids` mode. In `ids` mode the script prints detailed field diffs for each
+mismatched document, including the PostgreSQL-derived expected value and the
+Mongo value. By default it prints up to 20 differing fields per document:
+
+```powershell
+py .\inspect_usage_logs_sync.py --mode ids --ids 191245188
+```
+
+Increase or disable that cap with `--detail-diff-limit`:
+
+```powershell
+py .\inspect_usage_logs_sync.py --mode ids --ids 191245188 --detail-diff-limit 50
+```
+
+Use `time` or `id_range` mode for broad scans and mismatch counts. Use `ids`
+mode after that to inspect specific sampled mismatches in detail.
+
 Comparison behavior:
 
 - PostgreSQL is treated as the source of truth.
