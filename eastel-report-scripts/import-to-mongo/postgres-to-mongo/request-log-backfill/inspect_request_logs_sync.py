@@ -41,6 +41,10 @@ DEFAULT_MISMATCH_SAMPLE_LIMIT = 100
 IGNORED_PATHS = {("_id",), ("sync_metadata", "synced_at")}
 
 
+def log(message: str) -> None:
+    print(f"[{datetime.now().isoformat(timespec='seconds')}] {message}", flush=True)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Inspect request log MongoDB documents against PostgreSQL source rows."
@@ -115,6 +119,12 @@ def comparable_value(value: Any) -> Any:
     return value
 
 
+def int_id(value: Any) -> int:
+    if isinstance(value, Decimal128):
+        return int(value.to_decimal())
+    return int(value)
+
+
 def values_equal(expected: Any, actual: Any) -> bool:
     return comparable_value(expected) == comparable_value(actual)
 
@@ -167,16 +177,24 @@ def inspect_rows(
     if not rows:
         return 0, 0
 
+    inspect_started_at = time.perf_counter()
+    log(f"building expected request documents for {len(rows)} PostgreSQL rows")
     expected_by_id = {
         int(row["request_log_id"]): transform_row(row, source_table)
         for row in rows
     }
     projection = expected_projection(next(iter(expected_by_id.values())))
+    mongo_fetch_started_at = time.perf_counter()
+    log(f"fetching {len(expected_by_id)} request documents from Mongo")
     mongo_docs = {
-        int(doc["request_log_id"]): doc
+        int_id(doc["request_log_id"]): doc
         for doc in mongo_collection.find({"request_log_id": {"$in": list(expected_by_id)}}, projection)
         if doc.get("request_log_id") is not None
     }
+    log(
+        f"fetched {len(mongo_docs)} request documents from Mongo in "
+        f"{time.perf_counter() - mongo_fetch_started_at:.3f}s"
+    )
 
     missing_count = 0
     field_mismatch_count = 0
@@ -193,6 +211,10 @@ def inspect_rows(
         if is_mismatched and len(sample_ids) < sample_limit:
             sample_ids.append(request_log_id)
 
+    log(
+        f"compared {len(rows)} request rows in {time.perf_counter() - inspect_started_at:.3f}s, "
+        f"batch_missing={missing_count}, batch_field_mismatches={field_mismatch_count}"
+    )
     return missing_count, field_mismatch_count
 
 
@@ -213,7 +235,8 @@ def print_progress(
         f"matched={matched_count}, "
         f"missing={missing_count}, field_mismatches={field_mismatch_count}, "
         f"total_mismatched={mismatched_count}, last_request_log_id={last_request_log_id}, "
-        f"batch_total={time.perf_counter() - batch_started_at:.3f}s"
+        f"batch_total={time.perf_counter() - batch_started_at:.3f}s",
+        flush=True,
     )
 
 
@@ -227,15 +250,15 @@ def print_summary(
 ) -> None:
     mismatched_count = missing_count + field_mismatch_count
     matched_count = scanned_rows - mismatched_count
-    print("\nInspection summary")
-    print(f"total_postgres_rows={total_rows}")
-    print(f"total_rows_scanned={scanned_rows}")
-    print(f"total_matched_records={matched_count}")
-    print(f"mongo_documents_missing={missing_count}")
-    print(f"records_with_field_mismatches={field_mismatch_count}")
-    print(f"total_mismatched_records={mismatched_count}")
-    print(f"mismatch_sample_limit={sample_limit}")
-    print(f"sampled_mismatched_request_log_ids={sample_ids}")
+    print("\nInspection summary", flush=True)
+    print(f"total_postgres_rows={total_rows}", flush=True)
+    print(f"total_rows_scanned={scanned_rows}", flush=True)
+    print(f"total_matched_records={matched_count}", flush=True)
+    print(f"mongo_documents_missing={missing_count}", flush=True)
+    print(f"records_with_field_mismatches={field_mismatch_count}", flush=True)
+    print(f"total_mismatched_records={mismatched_count}", flush=True)
+    print(f"mismatch_sample_limit={sample_limit}", flush=True)
+    print(f"sampled_mismatched_request_log_ids={sample_ids}", flush=True)
 
 
 def inspect_by_time(
@@ -258,6 +281,7 @@ def inspect_by_time(
 
     while True:
         batch_started_at = time.perf_counter()
+        log(f"fetching PostgreSQL request batch after request_log_id={last_request_log_id}")
         rows = fetch_rows_by_time(
             pg_conn,
             source_table,
@@ -271,6 +295,7 @@ def inspect_by_time(
         if not rows:
             break
         last_request_log_id = int(rows[-1]["request_log_id"])
+        log(f"fetched {len(rows)} PostgreSQL request rows, last_request_log_id={last_request_log_id}")
         batch_missing, batch_field_mismatches = inspect_rows(
             mongo_collection, rows, source_table, sample_limit, sample_ids
         )
@@ -302,10 +327,12 @@ def inspect_by_id_range(
 
     while True:
         batch_started_at = time.perf_counter()
+        log(f"fetching PostgreSQL request batch after request_log_id={last_request_log_id}")
         rows = fetch_rows_by_id_range(pg_conn, source_table, id_from, id_to, last_request_log_id, batch_size)
         if not rows:
             break
         last_request_log_id = int(rows[-1]["request_log_id"])
+        log(f"fetched {len(rows)} PostgreSQL request rows, last_request_log_id={last_request_log_id}")
         batch_missing, batch_field_mismatches = inspect_rows(
             mongo_collection, rows, source_table, sample_limit, sample_ids
         )
@@ -350,9 +377,11 @@ def main() -> None:
             mongo_collection = mongo_client[mongo_db_name][mongo_collection_name]
 
             if args.mode == "ids":
-                print(f"[{datetime.now().isoformat(timespec='seconds')}] calculating total rows for explicit request_log_id list")
+                log("calculating total rows for explicit request_log_id list")
                 total_rows = count_rows_by_ids(pg_conn, source_table, explicit_ids)
+                log(f"fetching {len(explicit_ids)} explicit PostgreSQL request IDs")
                 rows = fetch_rows_by_ids(pg_conn, source_table, explicit_ids)
+                log(f"fetched {len(rows)} PostgreSQL request rows for explicit ID list")
                 sample_ids: list[int] = []
                 missing_count, field_mismatch_count = inspect_rows(
                     mongo_collection,
@@ -380,7 +409,7 @@ def main() -> None:
                     end_dt,
                     args.min_record_age_seconds,
                 )
-                print(f"[{datetime.now().isoformat(timespec='seconds')}] total matching rows={total_rows}")
+                log(f"total matching rows={total_rows}")
                 inspect_by_time(
                     pg_conn,
                     mongo_collection,
@@ -398,7 +427,7 @@ def main() -> None:
             id_from = args.id_from if args.id_from is not None else 0
             id_to = args.id_to if args.id_to is not None else 9223372036854775807
             total_rows = count_rows_by_id_range(pg_conn, source_table, id_from, id_to)
-            print(f"[{datetime.now().isoformat(timespec='seconds')}] total matching rows={total_rows}")
+            log(f"total matching rows={total_rows}")
             inspect_by_id_range(
                 pg_conn,
                 mongo_collection,
