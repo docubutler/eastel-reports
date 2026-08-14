@@ -10,6 +10,7 @@ documents and insert missing ones.
 ## Files
 
 - `backfill_request_logs.py`
+- `inspect_request_logs_sync.py`
 - `config.yml`
 - `config-sample.yml`
 
@@ -120,6 +121,46 @@ The script now:
 
 The script still does not compare PostgreSQL and Mongo document contents
 row-by-row before updating.
+
+## Sync Inspection
+
+Use `inspect_request_logs_sync.py` when you want to check whether Mongo
+`request_logs` still match PostgreSQL without writing any repair changes.
+
+The inspection script accepts the same scope options as the backfill script:
+
+- `--mode ids --ids 191392446,191398089,194661431`
+- `--mode id_range --id-from 190000000 --id-to 196000000`
+- `--mode time --time-field up_time --start 2026-05-16T00:00:00 --end 2026-05-20T00:00:00`
+
+Example:
+
+```powershell
+py .\inspect_request_logs_sync.py --mode time --time-field up_time --start 2026-05-16T00:00:00 --end 2026-05-20T00:00:00
+```
+
+The script prints progress after each batch, including:
+
+- rows scanned so far
+- matched records
+- missing Mongo documents
+- records with field mismatches
+- total mismatched records
+- latest processed `request_log_id`
+
+At the end, it prints a summary and the first mismatched IDs. By default it
+prints up to 100 mismatched IDs; override that with:
+
+```powershell
+py .\inspect_request_logs_sync.py --mode ids --ids 191392446,191398089 --mismatch-sample-limit 250
+```
+
+Comparison behavior:
+
+- PostgreSQL is treated as the source of truth.
+- Expected Mongo documents are built with the same transform used by the sync script.
+- Mongo `_id` and `sync_metadata.synced_at` are ignored.
+- Extra fields in Mongo are ignored, matching the existing `$set` upsert behavior.
 
 ## Time Mode Age Gate
 
