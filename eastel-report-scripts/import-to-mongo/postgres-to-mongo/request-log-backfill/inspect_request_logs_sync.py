@@ -167,6 +167,14 @@ def document_has_field_mismatch(expected_doc: dict[str, Any], mongo_doc: dict[st
     return False
 
 
+def first_mismatch_path(expected_doc: dict[str, Any], mongo_doc: dict[str, Any]) -> str:
+    for path, expected_value in expected_paths(expected_doc):
+        found, actual_value = get_nested(mongo_doc, path)
+        if not found or not values_equal(expected_value, actual_value):
+            return ".".join(path)
+    return ""
+
+
 def inspect_rows(
     mongo_collection,
     rows: list[dict[str, Any]],
@@ -198,22 +206,34 @@ def inspect_rows(
 
     missing_count = 0
     field_mismatch_count = 0
+    batch_sample_ids: list[int] = []
+    batch_mismatch_paths: list[str] = []
     for request_log_id, expected_doc in expected_by_id.items():
         mongo_doc = mongo_docs.get(request_log_id)
         is_mismatched = False
         if mongo_doc is None:
             missing_count += 1
             is_mismatched = True
+            mismatch_path = "<missing_document>"
         elif document_has_field_mismatch(expected_doc, mongo_doc):
             field_mismatch_count += 1
             is_mismatched = True
+            mismatch_path = first_mismatch_path(expected_doc, mongo_doc)
+        else:
+            mismatch_path = ""
 
         if is_mismatched and len(sample_ids) < sample_limit:
             sample_ids.append(request_log_id)
+        if is_mismatched and len(batch_sample_ids) < min(sample_limit, 10):
+            batch_sample_ids.append(request_log_id)
+        if mismatch_path and mismatch_path not in batch_mismatch_paths and len(batch_mismatch_paths) < 5:
+            batch_mismatch_paths.append(mismatch_path)
 
     log(
         f"compared {len(rows)} request rows in {time.perf_counter() - inspect_started_at:.3f}s, "
-        f"batch_missing={missing_count}, batch_field_mismatches={field_mismatch_count}"
+        f"batch_missing={missing_count}, batch_field_mismatches={field_mismatch_count}, "
+        f"batch_sample_mismatched_request_log_ids={batch_sample_ids}, "
+        f"first_mismatch_paths={batch_mismatch_paths}"
     )
     return missing_count, field_mismatch_count
 
