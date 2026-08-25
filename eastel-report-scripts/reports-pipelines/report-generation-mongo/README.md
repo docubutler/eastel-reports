@@ -113,3 +113,7 @@ py .\generate_report.py
 - Use `config-sample.yml` as the baseline if a fresh `config.yml` is needed.
 - For `2-Invoice-Recon`, use `run_query.py` when validating one query without running the whole workbook.
 - Do not assume date handling is identical across folders; check the README in the report you are running.
+
+## Staging vs Production
+
+For staging env customer_id will be cust_test% and all the rest of the cdrs/data will be considered as Production
