@@ -1,6 +1,6 @@
 /*
 Copy-paste sample for July 2026:
-Requires temp_country_code to be loaded from Mongo country_code by generate_report.py.
+Requires temp_country_code to be loaded from Postgres iot_portal_tb_country by generate_report.py.
 
 SELECT 'Voice' AS service_type, 'Voice MO' AS charge_type, COALESCE(cc.country, 'UNMAPPED') AS country, COUNT(*) AS call_count, ROUND(SUM(COALESCE(t.act_update_used_volume, 0)) / 60.0, 2) AS mou_mins
 FROM public.iot_portal_tb_request_log t

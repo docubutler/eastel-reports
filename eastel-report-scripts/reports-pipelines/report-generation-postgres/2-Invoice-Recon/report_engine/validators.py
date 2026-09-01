@@ -8,10 +8,6 @@ from .excel_processor import WorkbookReferences
 def validate_config(config: AppConfig) -> None:
     if not (config.postgres.dsn or (config.postgres.database and config.postgres.user and config.postgres.password)):
         raise ValueError("Missing PostgreSQL settings: provide postgres.dsn or database/user/password.")
-    if not config.mongo.uri:
-        raise ValueError("Missing MongoDB setting: mongo.uri")
-    if not config.mongo.database:
-        raise ValueError("Missing MongoDB setting: mongo.database")
     if not config.report_generation.queries_dir.exists():
         raise FileNotFoundError(f"Queries directory not found: {config.report_generation.queries_dir}")
     if not config.report_generation.template_xlsx.exists():

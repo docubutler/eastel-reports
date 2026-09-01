@@ -1,6 +1,6 @@
 /*
 Copy-paste sample for July 2026:
-Requires temp_roaming_destination to be loaded from Mongo roaming_destination by generate_report.py.
+Requires temp_roaming_destination to be loaded from Postgres iot_portal_tb_roaming_destination by generate_report.py.
 
 SELECT
     'Data Roaming' AS service_type,

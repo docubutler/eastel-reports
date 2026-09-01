@@ -1,6 +1,6 @@
 /*
 Copy-paste sample for July 2026:
-Requires temp_country_code to be loaded from Mongo country_code by generate_report.py.
+Requires temp_country_code to be loaded from Postgres iot_portal_tb_country by generate_report.py.
 
 SELECT
     'Voice' AS service_type,

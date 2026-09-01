@@ -1,6 +1,6 @@
 /*
 Copy-paste sample for July 2026:
-Requires temp_roaming_destination to be loaded from Mongo roaming_destination by generate_report.py.
+Requires temp_roaming_destination to be loaded from Postgres iot_portal_tb_roaming_destination by generate_report.py.
 
 SELECT 'SMS Roaming' AS service_type, 'MO' AS charge_type, COALESCE(NULLIF(REPLACE(REPLACE(BTRIM(rd.roaming_destination_name), ': ', '-'), ':', '-'), ''), NULLIF(BTRIM(rd.country), ''), 'UNMAPPED-' || t.roaming_destination_id::text) AS country, COUNT(*) AS sms_count
 FROM public.iot_portal_tb_request_log t

@@ -6,11 +6,11 @@ The runner reads an Excel template, finds scalar placeholders such as `%Q004.onn
 
 ## Why Mongo Is Still Required
 
-This is a PostgreSQL report runner, but not every required report input currently exists in PostgreSQL.
+This is a PostgreSQL report runner, but SMSC/A2P SMS records are still read from Mongo.
 
-- **A2P SMS / SMSC records**: there is no PostgreSQL SMSC table available for this pipeline. Query `Q015` is therefore executed directly against the Mongo `smsc_cdrs` collection.
-- **Country code mapping**: PostgreSQL does not currently expose `iot_portal_tb_country` or an equivalent country-code table. The runner reads Mongo `country_code` into a temporary PostgreSQL table named `temp_country_code` for the current session.
-- **Roaming destination mapping**: the runner reads Mongo `roaming_destination` into a temporary PostgreSQL table named `temp_roaming_destination` for the current session.
+- **A2P SMS / SMSC records**: Query `Q015` is executed directly against the Mongo `smsc_cdrs` collection.
+- **Country code mapping**: the runner reads PostgreSQL `iot_portal_tb_country` into a temporary PostgreSQL table named `temp_country_code` for the current session.
+- **Roaming destination mapping**: the runner reads PostgreSQL `iot_portal_tb_roaming_destination` into a temporary PostgreSQL table named `temp_roaming_destination` for the current session.
 
 Those temporary tables are created only for the active report run. They are not persistent database objects and do not require schema changes.
 
@@ -44,12 +44,67 @@ Every query file starts with a concrete July 2026 copy-paste sample query. The r
 - `report_engine/`: Excel rendering, config loading, PostgreSQL execution, and Mongo helper execution.
 - `usage-queries/`: one query file per workbook query, sourced from usage logs.
 - `request-queries/`: one query file per workbook query, sourced from request logs.
+- `recon-report-samples/`: sample CSV outputs for the recon sections. These are reference files for expected report shape and values, not runtime inputs.
+- `templates/`: CSV templates for the individual recon tables/sections. These document the column layout used by the report sections.
 - `2. CDR-Reconcialation-Report_template.xlsx`: workbook template copied into this folder.
 - `config.yml`: local runtime config.
 - `config-sample.yml`: sample config for new environments.
+- `queries.sql`: combined/reference SQL used for review or copy-paste validation. Runtime execution uses the query files in the selected query folder.
 - `requirements.txt`: Python dependencies.
 
 `split_queries.py` is intentionally removed. Query files are now maintained directly in the selected query folder.
+
+## Reference Folders
+
+### `recon-report-samples/`
+
+This folder contains example CSV files for the major Invoice Recon sections:
+
+- `recon-report-active-subs_sample.csv`: active subscriber count sample.
+- `recon-report-domestic-sms-voice-and-data_sample.csv`: domestic SMS, voice, 4G data, and 5G data sample.
+- `recon-report-internation-voice-and-sms_sample.csv`: international SMS and voice sample.
+- `recon-report-domestic-a2p-sms_sample.csv`: domestic A2P SMS sample.
+- `recon-report-permium-and-speical-numbers_sample.csv`: premium and special numbers sample.
+
+Use these files to compare the generated workbook layout and section totals. The runner does not read these files while generating the report.
+
+### `templates/`
+
+This folder contains CSV table templates that describe the expected columns for each report section:
+
+- `recon-report-active-subs-template.csv`
+- `recon-report-domestic-sms-voice-and-data-template.csv`
+- `recon-report-international-voice-and-sms-template.csv`
+- `recon-report-domestic-a2p-sms-template.csv`
+- `recon-report-premium-and-special-numbers-template.csv`
+
+These templates are documentation/reference assets. The Excel workbook template remains the source used by the runner.
+
+### Query Folders And Table Sources
+
+The selected query folder decides which PostgreSQL CDR table is used:
+
+| Config value | PostgreSQL table | When to use |
+| --- | --- | --- |
+| `usage-queries` | `public.iot_portal_tb_usage_log` | Use this when invoice recon should be based on usage-log CDRs. |
+| `request-queries` | `public.iot_portal_tb_request_log` | Use this when invoice recon should be based on request-log CDRs. |
+
+The table names are configured in `config.yml`:
+
+```yaml
+tables:
+  usage_log_table: "public.iot_portal_tb_usage_log"
+  request_log_table: "public.iot_portal_tb_request_log"
+  country_table: "public.iot_portal_tb_country"
+  roaming_destination_table: "public.iot_portal_tb_roaming_destination"
+```
+
+The Mongo collection used for A2P SMS/SMSC input is also configured in `config.yml`:
+
+```yaml
+collections:
+  smsc_cdr: "smsc_cdrs"
+```
 
 ## Query IDs
 
@@ -109,9 +164,20 @@ report_generation:
   queries_dir: "request-queries"
 ```
 
+The generated workbook path is controlled by:
+
+```yaml
+report_generation:
+  output_xlsx: "2-Invoice-Recon-postgres-report-July.xlsx"
+```
+
+If the output workbook already exists and no placeholders remain, delete it or change `output_xlsx` before running again.
+
 ## Date Window
 
-The config uses an exclusive end date. For July:
+To generate the invoice recon for a particular month, update only the month window in `config.yml`.
+
+The config uses an exclusive end date. For July 2026, set `start_date` to the first day of July and `end_date` to the first day of August:
 
 ```yaml
 variables:
@@ -124,6 +190,20 @@ This matches the SQL pattern:
 ```sql
 WHERE event_time >= '2026-07-01 00:00:00'
   AND event_time <  '2026-08-01 00:00:00'
+```
+
+For August 2026, update only these values:
+
+```yaml
+variables:
+  start_date: "2026-08-01 00:00:00"
+  end_date: "2026-09-01 00:00:00"
+```
+
+In normal use, you do not need to edit SQL files for a new month. Update `variables.start_date` and `variables.end_date` in `config.yml`, then run:
+
+```powershell
+python generate_report.py --config config.yml
 ```
 
 ## Notes

@@ -1,6 +1,6 @@
 /*
 Copy-paste sample for July 2026:
-Requires temp_country_code to be loaded from Mongo country_code by generate_report.py.
+Requires temp_country_code to be loaded from Postgres iot_portal_tb_country by generate_report.py.
 
 SELECT 'SMS' AS service_type, 'SMS MO' AS charge_type, COALESCE(cc.country, 'UNMAPPED') AS country, COUNT(*) AS sms_count
 FROM public.iot_portal_tb_request_log t

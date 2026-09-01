@@ -98,32 +98,23 @@ def _normalize_row(row: dict[str, Any]) -> dict[str, Any]:
     return {str(key): _normalize_value(value) for key, value in row.items()}
 
 
+def _safe_table_name(configured_name: str, default_name: str) -> str:
+    table_name = (configured_name or default_name).strip()
+    parts = table_name.split(".")
+    if not parts or not all(part.replace("_", "").isalnum() for part in parts):
+        raise ValueError(f"Unsafe table name configured: {table_name}")
+    return ".".join(parts)
+
+
 def _ensure_reference_temp_tables(context: ExecutionContext) -> None:
-    if context.mongo_client is None:
-        LOGGER.info("MongoDB is not configured; reference temp tables will be empty.")
-        return
-
-    db = context.mongo_db
-    country_collection = context.config.collections.get("country_code", "country_code")
-    roaming_collection = context.config.collections.get("roaming_destination", "roaming_destination")
-
-    country_rows = [
-        (str(doc.get("country") or "").strip(), str(doc.get("country_code") or "").strip())
-        for doc in db[country_collection].find({}, {"_id": 0, "country": 1, "country_code": 1})
-        if str(doc.get("country_code") or "").strip()
-    ]
-    roaming_rows = [
-        (
-            int(doc.get("roaming_destination_id")),
-            str(doc.get("roaming_destination_name") or "").strip(),
-            str(doc.get("country") or "").strip(),
-        )
-        for doc in db[roaming_collection].find(
-            {},
-            {"_id": 0, "roaming_destination_id": 1, "roaming_destination_name": 1, "country": 1},
-        )
-        if doc.get("roaming_destination_id") is not None
-    ]
+    country_table = _safe_table_name(
+        context.config.tables.get("country_table", ""),
+        "public.iot_portal_tb_country",
+    )
+    roaming_destination_table = _safe_table_name(
+        context.config.tables.get("roaming_destination_table", ""),
+        "public.iot_portal_tb_roaming_destination",
+    )
 
     with context.pg_conn.cursor() as cursor:
         cursor.execute(
@@ -145,34 +136,72 @@ def _ensure_reference_temp_tables(context: ExecutionContext) -> None:
         )
         cursor.execute("TRUNCATE temp_country_code")
         cursor.execute("TRUNCATE temp_roaming_destination")
-        if country_rows:
-            cursor.executemany(
-                "INSERT INTO temp_country_code (country, country_code) VALUES (%s, %s)",
-                country_rows,
-            )
-        if roaming_rows:
-            cursor.executemany(
-                """
-                INSERT INTO temp_roaming_destination
-                    (roaming_destination_id, roaming_destination_name, country)
-                VALUES (%s, %s, %s)
-                """,
-                roaming_rows,
-            )
+        cursor.execute(
+            f"""
+            INSERT INTO temp_country_code (country, country_code)
+            SELECT country, country_code
+            FROM (
+                SELECT
+                    BTRIM(country.country_name::text) AS country,
+                    REGEXP_REPLACE(BTRIM(prefixes.prefix), '[^0-9]', '', 'g') AS country_code
+                FROM {country_table} country
+                CROSS JOIN LATERAL REGEXP_SPLIT_TO_TABLE(
+                    CONCAT_WS(
+                        ',',
+                        NULLIF(country.cc::text, ''),
+                        NULLIF(country.idd_call_prefix_list::text, '')
+                    ),
+                    ','
+                ) AS prefixes(prefix)
+            ) country_prefixes
+            WHERE country_code <> ''
+            """
+        )
+        country_count = cursor.rowcount
+        cursor.execute(
+            f"""
+            INSERT INTO temp_roaming_destination
+                (roaming_destination_id, roaming_destination_name, country)
+            SELECT
+                roaming.roaming_destination_id,
+                BTRIM(roaming.roaming_destination_name::text),
+                BTRIM(country.country_name::text)
+            FROM {roaming_destination_table} roaming
+            LEFT JOIN {country_table} country
+                ON country.country_id = roaming.country_id
+            WHERE roaming.roaming_destination_id IS NOT NULL
+            """
+        )
+        roaming_count = cursor.rowcount
 
     context.pg_conn.commit()
-    LOGGER.info("Loaded Mongo references into Postgres temp tables | countries=%s | roaming_destinations=%s", len(country_rows), len(roaming_rows))
+    LOGGER.info(
+        "Loaded Postgres references into temp tables | countries=%s | roaming_destinations=%s",
+        country_count,
+        roaming_count,
+    )
+
+
+def _ensure_mongo_client(context: ExecutionContext) -> MongoClient[Any]:
+    if context.mongo_client is not None:
+        return context.mongo_client
+
+    mongo_uri = os.getenv("MONGO_URI") or context.config.mongo.uri
+    if not mongo_uri or not context.config.mongo.database:
+        raise ValueError("MongoDB is not configured.")
+
+    context.mongo_client = MongoClient(mongo_uri)
+    return context.mongo_client
 
 
 def create_execution_context(config: AppConfig) -> ExecutionContext:
     pg_conn = psycopg.connect(_build_postgres_dsn(config))
-    mongo_uri = os.getenv("MONGO_URI") or config.mongo.uri
-    mongo_client: MongoClient[Any] | None = None
-    if mongo_uri and config.mongo.database:
-        mongo_client = MongoClient(mongo_uri)
-
-    context = ExecutionContext(config=config, pg_conn=pg_conn, mongo_client=mongo_client)
-    _ensure_reference_temp_tables(context)
+    context = ExecutionContext(config=config, pg_conn=pg_conn, mongo_client=None)
+    try:
+        _ensure_reference_temp_tables(context)
+    except Exception:
+        context.close()
+        raise
     return context
 
 
@@ -205,6 +234,7 @@ def _execute_postgres_query(
 
 
 def _execute_mongo_a2p_sms(query_definition: QueryDefinition, context: ExecutionContext) -> QueryPayload:
+    _ensure_mongo_client(context)
     db = context.mongo_db
     collection_name = context.config.collections.get("smsc_cdr", "smsc_cdrs")
     start_date = _parse_datetime(context.config.variables["start_date"])
