@@ -11,7 +11,7 @@ WHERE t.req_time >= TIMESTAMP '2026-07-01 00:00:00'
   AND t.service_type_sub_cd = 'MO'
   AND t.roaming_destination_id <> 87
   AND COALESCE(t.act_update_used_volume, 0) > 0
-GROUP BY country
+GROUP BY 3
 ORDER BY country;
 */
 
@@ -24,5 +24,5 @@ WHERE t.req_time >= '{{start_date}}'
   AND t.service_type_sub_cd = 'MO'
   AND t.roaming_destination_id <> 87
   AND COALESCE(t.act_update_used_volume, 0) > 0
-GROUP BY country
+GROUP BY 3
 ORDER BY country;

@@ -14,7 +14,7 @@ WHERE t.usage_start_time >= TIMESTAMP '2026-07-01 00:00:00'
   AND t.rat_type IN ('4G', '5G')
   AND t.roaming_destination_id <> 87
   AND COALESCE(t.act_usage_unit, 0) > 0
-GROUP BY country
+GROUP BY 3
 ORDER BY country;
 */
 
@@ -30,5 +30,5 @@ WHERE t.usage_start_time >= '{{start_date}}'
   AND t.rat_type IN ('4G', '5G')
   AND t.roaming_destination_id <> 87
   AND COALESCE(t.act_usage_unit, 0) > 0
-GROUP BY country
+GROUP BY 3
 ORDER BY country;

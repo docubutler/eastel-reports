@@ -227,9 +227,13 @@ def _execute_postgres_query(
     query_definition: QueryDefinition,
     context: ExecutionContext,
 ) -> QueryPayload:
-    with context.pg_conn.cursor(row_factory=dict_row) as cursor:
-        cursor.execute(rendered_query)
-        rows = list(cursor.fetchall())
+    try:
+        with context.pg_conn.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(rendered_query)
+            rows = list(cursor.fetchall())
+    except Exception:
+        context.pg_conn.rollback()
+        raise
     return _coerce_payload(query_id, query_definition, rows)
 
 
