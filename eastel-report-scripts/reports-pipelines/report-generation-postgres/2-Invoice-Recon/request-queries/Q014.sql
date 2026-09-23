@@ -15,35 +15,37 @@ WITH categories AS (
 aggregated AS (
     SELECT
         CASE
-            WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
-            WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
-            WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
-            WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
-            WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
-            WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
-            WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
-            WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
-            WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
-            WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
-            WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
-            WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
-            WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
-            WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
-            WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
-            WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
-            WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
-            WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+            WHEN d.digits = '600380008000' THEN '1 MOCC - 03-8000 8000'
+            WHEN d.digits ~ '^(60)?1300[0-9]{6,8}$' THEN '1300 Numbers'
+            WHEN d.digits ~ '^(60)?1700[0-9]{6,8}$' THEN '1700 Numbers'
+            WHEN d.digits ~ '^(60)?1800[0-9]{6,8}$' THEN '1800 Numbers'
+            WHEN d.digits = '60103' THEN 'Directory Assistance -Services 103'
+            WHEN d.digits = '60100' THEN 'Info Services - 100'
+            WHEN d.digits = '6015454' THEN 'Info Services - 15454'
+            WHEN d.digits = '6015300' THEN 'Info Services - 15300'
+            WHEN d.digits = '6015353' THEN 'Info Services - 15353'
+            WHEN d.digits = '6015404' THEN 'Info Services - 15404'
+            WHEN d.digits = '6015444' THEN 'Info Services - 15444'
+            WHEN d.digits = '6015777' THEN 'Info Services - 15777'
+            WHEN d.digits = '6015555' THEN 'Info Services - 15555'
+            WHEN d.digits = '6015999' THEN 'Info Services - 15999'
+            WHEN d.digits = '6013504' THEN 'Info Services - 13504'
+            WHEN d.digits = '6015511' THEN 'Info Services - 15511'
+            WHEN d.digits = '6015800' THEN 'Info Services - 15800'
+            WHEN d.digits = '6015995' THEN 'Info Services - 15995'
         END AS call_type,
         COUNT(DISTINCT t.session_id)::numeric AS no_of_calls,
         ROUND(SUM(COALESCE(t.act_update_used_volume, 0)) / 60.0, 2) AS mou
     FROM public.iot_portal_tb_request_log t
+    CROSS JOIN LATERAL (
+        SELECT REGEXP_REPLACE(BTRIM(t.opposite_number::text), '[^0-9]', '', 'g') AS digits
+    ) d
     WHERE t.req_time >= TIMESTAMP '2026-07-01 00:00:00'
       AND t.req_time <  TIMESTAMP '2026-08-01 00:00:00'
       AND t.rat_type = 'VO'
       AND t.service_type_sub_cd = 'MO'
       AND t.roaming_destination_id = 87
       AND COALESCE(t.act_update_used_volume, 0) > 0
-      AND (t.opposite_number = '600380008000' OR t.opposite_number IN ('60103','60100','6015454','6015300','6015353','6015404','6015444','6015777','6015555','6015999','6013504','6015511','6015800','6015995') OR t.opposite_number LIKE '601300%' OR t.opposite_number LIKE '601700%' OR t.opposite_number LIKE '601800%')
     GROUP BY 1
 )
 SELECT 'Voice' AS service_type, 'Premium and Special Numbers' AS charge_type, c.call_type, a.no_of_calls, a.mou
@@ -65,35 +67,37 @@ WITH categories AS (
 aggregated AS (
     SELECT
         CASE
-            WHEN t.opposite_number = '600380008000' THEN '1 MOCC - 03-8000 8000'
-            WHEN t.opposite_number LIKE '601300%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1300 Numbers'
-            WHEN t.opposite_number LIKE '601700%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1700 Numbers'
-            WHEN t.opposite_number LIKE '601800%' AND CHAR_LENGTH(COALESCE(t.opposite_number, '')) < 12 THEN '1800 Numbers'
-            WHEN t.opposite_number = '60103' THEN 'Directory Assistance -Services 103'
-            WHEN t.opposite_number = '60100' THEN 'Info Services - 100'
-            WHEN t.opposite_number = '6015454' THEN 'Info Services - 15454'
-            WHEN t.opposite_number = '6015300' THEN 'Info Services - 15300'
-            WHEN t.opposite_number = '6015353' THEN 'Info Services - 15353'
-            WHEN t.opposite_number = '6015404' THEN 'Info Services - 15404'
-            WHEN t.opposite_number = '6015444' THEN 'Info Services - 15444'
-            WHEN t.opposite_number = '6015777' THEN 'Info Services - 15777'
-            WHEN t.opposite_number = '6015555' THEN 'Info Services - 15555'
-            WHEN t.opposite_number = '6015999' THEN 'Info Services - 15999'
-            WHEN t.opposite_number = '6013504' THEN 'Info Services - 13504'
-            WHEN t.opposite_number = '6015511' THEN 'Info Services - 15511'
-            WHEN t.opposite_number = '6015800' THEN 'Info Services - 15800'
-            WHEN t.opposite_number = '6015995' THEN 'Info Services - 15995'
+            WHEN d.digits = '600380008000' THEN '1 MOCC - 03-8000 8000'
+            WHEN d.digits ~ '^(60)?1300[0-9]{6,8}$' THEN '1300 Numbers'
+            WHEN d.digits ~ '^(60)?1700[0-9]{6,8}$' THEN '1700 Numbers'
+            WHEN d.digits ~ '^(60)?1800[0-9]{6,8}$' THEN '1800 Numbers'
+            WHEN d.digits = '60103' THEN 'Directory Assistance -Services 103'
+            WHEN d.digits = '60100' THEN 'Info Services - 100'
+            WHEN d.digits = '6015454' THEN 'Info Services - 15454'
+            WHEN d.digits = '6015300' THEN 'Info Services - 15300'
+            WHEN d.digits = '6015353' THEN 'Info Services - 15353'
+            WHEN d.digits = '6015404' THEN 'Info Services - 15404'
+            WHEN d.digits = '6015444' THEN 'Info Services - 15444'
+            WHEN d.digits = '6015777' THEN 'Info Services - 15777'
+            WHEN d.digits = '6015555' THEN 'Info Services - 15555'
+            WHEN d.digits = '6015999' THEN 'Info Services - 15999'
+            WHEN d.digits = '6013504' THEN 'Info Services - 13504'
+            WHEN d.digits = '6015511' THEN 'Info Services - 15511'
+            WHEN d.digits = '6015800' THEN 'Info Services - 15800'
+            WHEN d.digits = '6015995' THEN 'Info Services - 15995'
         END AS call_type,
         COUNT(DISTINCT t.session_id)::numeric AS no_of_calls,
         ROUND(SUM(COALESCE(t.act_update_used_volume, 0)) / 60.0, 2) AS mou
     FROM {{request_log_table}} t
+    CROSS JOIN LATERAL (
+        SELECT REGEXP_REPLACE(BTRIM(t.opposite_number::text), '[^0-9]', '', 'g') AS digits
+    ) d
     WHERE t.req_time >= '{{start_date}}'
       AND t.req_time < '{{end_date}}'
       AND t.rat_type = 'VO'
       AND t.service_type_sub_cd = 'MO'
       AND t.roaming_destination_id = 87
       AND COALESCE(t.act_update_used_volume, 0) > 0
-      AND (t.opposite_number = '600380008000' OR t.opposite_number IN ('60103','60100','6015454','6015300','6015353','6015404','6015444','6015777','6015555','6015999','6013504','6015511','6015800','6015995') OR t.opposite_number LIKE '601300%' OR t.opposite_number LIKE '601700%' OR t.opposite_number LIKE '601800%')
     GROUP BY 1
 )
 SELECT 'Voice' AS service_type, 'Premium and Special Numbers' AS charge_type, c.call_type, a.no_of_calls, a.mou
