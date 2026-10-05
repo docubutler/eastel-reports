@@ -1,0 +1,39 @@
+# POSTGRES_DSN overrides dsn. Otherwise use PGHOST, PGPORT, PGDATABASE,
+# PGUSER, PGPASSWORD, PGSSLMODE or these fields. No credentials are committed.
+postgres:
+  dsn: ""
+  host: "localhost"
+  port: 5432
+  database: "anchor_iot"
+  user: "anchor_readonly"
+  password: ""
+  sslmode: "prefer"
+  connect_timeout: 15
+
+mongo:
+  # MONGO_URI and MONGO_DB override these values.
+  uri: ""
+  database: "eastel-data"
+
+collections:
+  smsc_cdr: "smsc_cdrs"
+
+report_generation:
+  output_csv: "3-OneDay-CDR-Details-postgres-output.csv"
+  # Same behavior as Mongo: true means act_usage_unit > 0, not just != 0.
+  exclude_zero_usage_rows: false
+  # Categories 13 and 14 are always read from Mongo when enabled.
+  include_smsc: true
+  fetch_batch_size: 10000
+  statement_timeout_ms: 600000
+
+tables:
+  # September source: the live usage table rolled over on October 1.
+  usage_log_table: "public.iot_portal_tb_usage_log_old20260930"
+  # For current data use: public.iot_portal_tb_usage_log
+
+variables:
+  start_date: "2026-09-30"
+  # Inclusive end date; the script adds one day internally.
+  end_date: "2026-09-30"
+  msisdn_a: ""

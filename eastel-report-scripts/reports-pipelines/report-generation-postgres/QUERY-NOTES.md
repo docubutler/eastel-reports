@@ -4,7 +4,7 @@ Living reference for writing report queries. **Append new findings as they are
 discovered** — add to the relevant section and drop a line in the Change log at
 the bottom. Do not rewrite history; correct it in place and note the correction.
 
-Last updated: 2026-09-11
+Last updated: 2026-10-05
 
 ---
 
@@ -78,6 +78,34 @@ iot_portal_tb_usage_log.sim_service_plan_id
 - `last_grant_sim_service_plan_id` = the plan that actually **granted/consumed**
   quota for the record (`0` ⇒ PAYG). In every observed row so far it **equals**
   `sim_service_plan_id`.
+
+### 2026-10-05 correction — instance uniqueness and quota attribution
+
+The equality observation above was based on earlier samples, not a guarantee.
+Read-only Mongo aggregation for `2026-09-01T00:00:00Z` through
+`2026-10-01T00:00:00Z` found 39,141 positive-volume 4G/5G records with different
+`sim_service_plan_id` and `last_grant_sim_service_plan_id` values. One inspected
+event referenced an EMERGENCY instance but drew quota from an EZ35-DATA instance.
+Choose and label the attribution field; join either field to the mapping's
+`sim_service_plan_id`. Never combine the two alternative breakdowns.
+
+An instance ID is unique per assigned SIM plan row, not per subscriber. Many
+instances share a template `service_plan_id`, and a subscriber may have several
+instances. September's supplied mapping contained 275,992 unique instance IDs
+and 40 distinct template IDs, with no template-to-code conflicts in that export;
+`EZ35-DATA` appeared under both template IDs 482 and 545. Historical code
+conflicts listed above remain snapshot observations.
+
+The September usage source was rolled over on October 1 to
+`iot_portal_tb_usage_log_old20260930`. Mongo had no plan mapping collection at
+inspection; instance-level CSV mappings can be joined locally without Mongo
+writes. The root [README](../../README.md#4-service-plans-and-package-usage)
+documents the package list, mapping evidence, and aggregation method.
+
+The stored-timestamp Mongo analysis retained 118 unmapped positive grant IDs
+(0.015% of total actual data bytes). Its latest positive data usage was
+2026-09-30T14:47:23.351Z; completeness against the archived source remains
+unverified. Do not treat these totals as proof of complete September ingestion.
 
 ### Correction — no `service_plan_lookup` table
 There is **no** `service_plan_lookup` relation. That name was a mistake. The file
@@ -637,6 +665,11 @@ plus a long tail of ≤ 7-row numbers. So `LIKE '60182330%'` is **not** selectiv
 ---
 
 ## 8. Change log
+
+- **2026-10-05** — Added the September evidence correcting the earlier equality
+  assumption for referenced/grant plan IDs; clarified template versus instance
+  uniqueness, documented the rolled-over source and read-only local CSV joins,
+  and linked the root README's current retail-package mapping guidance.
 
 - **2026-09-18** — Added the Mongo equivalent (§6). Confirmed `usage_logs` mirrors
   `iot_portal_tb_usage_log`, Decimal128 typing for numeric columns, BSON-Date
