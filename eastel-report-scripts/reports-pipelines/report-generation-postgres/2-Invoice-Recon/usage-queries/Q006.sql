@@ -1,4 +1,6 @@
 /*
+Query for Domestic Data MO (4G), extracted from usage_log_table
+
 Copy-paste sample for July 2026:
 
 SELECT

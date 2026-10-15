@@ -36,6 +36,38 @@ Both folders contain the same query IDs and workbook output shapes. The differen
 | Actual usage column | `act_usage_unit` | `act_update_used_volume` |
 | Table variable | `{{usage_log_table}}` | `{{request_log_table}}` |
 
+### Mixing Both Folders
+
+`queries_dir` is only the default folder for query files referenced by bare filename. A query entry whose `file` contains a folder is resolved relative to the config file instead, so a single report can read some queries from usage logs and others from request logs:
+
+```yaml
+report_generation:
+  queries_dir: "usage-queries"
+
+queries:
+  Q006:
+    file: "request-queries/Q006.sql"
+    engine: "postgres"
+    output: "scalar"
+
+  roam-data:
+    file: "request-queries/roam-data.sql"
+    engine: "postgres"
+    output: "fixed_table"
+    anchor: "%TABLE:roam-data%"
+    columns:
+      - service_type
+      - charge_type
+      - country
+      - usage_mbs
+```
+
+Any entry still using a bare filename such as `"Q011.sql"` keeps resolving under `queries_dir`. Because the source table is selected by the `{{usage_log_table}}` / `{{request_log_table}}` placeholder inside each query file, no further wiring is needed when pointing at the other folder.
+
+Use forward slashes in these paths so the config works on Windows and Linux.
+
+Note that mixing folders means some report sections are extracted from `iot_portal_tb_usage_log` and others from `iot_portal_tb_request_log`.
+
 Every query file starts with a concrete July 2026 copy-paste sample query. The runnable query below that sample uses placeholders from `config.yml`.
 
 ## Files
@@ -163,6 +195,8 @@ Switch to request logs by changing only:
 report_generation:
   queries_dir: "request-queries"
 ```
+
+To read some queries from usage logs and others from request logs in the same report instead, see [Mixing Both Folders](#mixing-both-folders).
 
 The generated workbook path is controlled by:
 
