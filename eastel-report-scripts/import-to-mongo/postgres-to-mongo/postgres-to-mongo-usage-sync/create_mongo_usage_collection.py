@@ -100,15 +100,24 @@ def ensure_collection(db, collection_name: str):
     return db[collection_name]
 
 
-def drop_legacy_request_log_index_if_present(collection) -> list[str]:
-    dropped_indexes = []
+def drop_incompatible_unique_indexes(collection) -> list[dict]:
+    """Drop unique indexes that do not key usage documents by usage_log_id.
+
+    The usage collection is keyed only by usage_log_id. Unique indexes carried over
+    from request_logs (such as uq_request_log_id and uq_session_request_rating_group)
+    reject legitimate usage rows, because usage documents never populate the
+    request-log fields that those indexes rely on.
+    """
+    incompatible_indexes = []
     for index in collection.list_indexes():
         name = index.get("name")
-        key = index.get("key")
-        if name == "uq_request_log_id" and list(key.items()) == [("request_log_id", 1)]:
-            collection.drop_index(name)
-            dropped_indexes.append(name)
-    return dropped_indexes
+        if not index.get("unique") or name == "_id_":
+            continue
+        if list(index.get("key", {}).items()) == [("usage_log_id", 1)]:
+            continue
+        collection.drop_index(name)
+        incompatible_indexes.append({"name": name, "key": dict(index.get("key", {}))})
+    return incompatible_indexes
 
 
 def main() -> None:
@@ -144,7 +153,7 @@ def main() -> None:
         db = client[mongo_db_name]
         usage_collection = ensure_collection(db, mongo_collection_name)
         state_collection = ensure_collection(db, state_collection_name)
-        dropped_indexes = drop_legacy_request_log_index_if_present(usage_collection)
+        dropped_indexes = drop_incompatible_unique_indexes(usage_collection)
 
         created_indexes = []
         created_indexes.append(
@@ -222,9 +231,9 @@ def main() -> None:
         )
         print("Mongo usage collection is ready.")
         if dropped_indexes:
-            print("Dropped incompatible legacy indexes:")
-            for index_name in dropped_indexes:
-                print(f" - {index_name}")
+            print("Dropped incompatible unique indexes:")
+            for index in dropped_indexes:
+                print(f" - {index['name']} {index['key']}")
         print("Indexes ensured:")
         for index_name in created_indexes:
             print(f" - {index_name}")

@@ -47,3 +47,9 @@ Important sync tuning fields:
 python create_mongo_usage_collection.py
 python postgres_to_mongo_usage_sync.py
 ```
+
+`create_mongo_usage_collection.py` is the schema authority for the usage
+collection: it drops every unique index except the `uq_usage_log_id` key and then
+ensures the usage indexes. Run it whenever the sync reports incompatible unique
+indexes (for example `uq_session_request_rating_group`, which belongs to
+`request_logs` and rejects usage rows whose request-log fields are absent).

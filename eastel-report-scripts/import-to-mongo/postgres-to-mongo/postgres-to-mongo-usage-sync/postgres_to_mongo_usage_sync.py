@@ -15,7 +15,7 @@ from bson.decimal128 import Decimal128
 from psycopg import sql
 from psycopg.rows import dict_row
 from pymongo import MongoClient, ReturnDocument, UpdateOne
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import BulkWriteError, DuplicateKeyError
 
 
 DEFAULT_SOURCE_TABLE = "iot_portal_tb_usage_log_rep"
@@ -388,28 +388,57 @@ def release_lock(
 
 def validate_usage_collection_indexes(mongo_collection) -> None:
     has_usage_unique_index = False
+    incompatible_unique_indexes: list[str] = []
 
     for index in mongo_collection.list_indexes():
         name = index.get("name")
-        key = index.get("key")
-        key_items = list(key.items())
-
-        if name == "uq_request_log_id" and key_items == [("request_log_id", 1)]:
-            raise RuntimeError(
-                "Mongo collection has incompatible unique index 'uq_request_log_id' on "
-                "'request_log_id'. This usage sync writes documents keyed by 'usage_log_id'. "
-                "Run create_mongo_usage_collection.py to drop the stale request-log index "
-                "and ensure 'uq_usage_log_id'."
-            )
+        key_items = list(index.get("key", {}).items())
 
         if name == "uq_usage_log_id" and key_items == [("usage_log_id", 1)] and index.get("unique"):
             has_usage_unique_index = True
+            continue
+
+        if name != "_id_" and index.get("unique"):
+            incompatible_unique_indexes.append(f"{name} {dict(key_items)}")
+
+    if incompatible_unique_indexes:
+        joined = ", ".join(incompatible_unique_indexes)
+        raise RuntimeError(
+            "Mongo collection has unique indexes that are incompatible with usage sync documents: "
+            f"{joined}. This usage sync writes documents keyed by 'usage_log_id' only, so unique "
+            "indexes carried over from request_logs (for example 'uq_session_request_rating_group') "
+            "reject valid usage rows whose request-log fields are absent. Run "
+            "create_mongo_usage_collection.py to drop them and ensure 'uq_usage_log_id'."
+        )
 
     if not has_usage_unique_index:
         raise RuntimeError(
             "Mongo collection is missing the required unique index 'uq_usage_log_id' on "
             "'usage_log_id'. Run create_mongo_usage_collection.py before starting usage sync."
         )
+
+
+def describe_bulk_write_error(exc: BulkWriteError) -> str:
+    details = exc.details or {}
+    write_errors = details.get("writeErrors") or []
+    duplicate_errors = [error for error in write_errors if error.get("code") == 11000]
+    if not duplicate_errors:
+        return f"Mongo bulk write failed: {details}"
+
+    first_error = duplicate_errors[0]
+    index_name = first_error.get("index")
+    message = (
+        f"Mongo bulk write hit {len(duplicate_errors)} duplicate key error(s). "
+        f"Index: '{index_name}', key pattern: {first_error.get('keyPattern')}, "
+        f"key value: {first_error.get('keyValue')}. "
+        "The sync checkpoint was not advanced, so this batch is retried on the next run."
+    )
+    if index_name != "uq_usage_log_id":
+        message += (
+            " This index is not the usage sync key. Run create_mongo_usage_collection.py to drop "
+            "unique indexes inherited from request_logs before retrying."
+        )
+    return message
 
 
 def fetch_rows(pg_conn, source_table: str, last_usage_log_id: int, batch_size: int) -> list[dict[str, Any]]:
@@ -491,7 +520,10 @@ def sync_once(
         transform_duration_seconds = time.perf_counter() - transform_started_at
 
         mongo_write_started_at = time.perf_counter()
-        mongo_collection.bulk_write(operations, ordered=False)
+        try:
+            mongo_collection.bulk_write(operations, ordered=False)
+        except BulkWriteError as exc:
+            raise RuntimeError(describe_bulk_write_error(exc)) from exc
         mongo_write_duration_seconds = time.perf_counter() - mongo_write_started_at
         checkpoint_started_at = time.perf_counter()
         save_last_synced_id(
