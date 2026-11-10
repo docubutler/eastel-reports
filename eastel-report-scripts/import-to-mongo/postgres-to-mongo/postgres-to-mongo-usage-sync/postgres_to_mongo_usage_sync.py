@@ -4,6 +4,8 @@ import os
 import sys
 import time
 import uuid
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -16,6 +18,7 @@ from psycopg import sql
 from psycopg.rows import dict_row
 from pymongo import MongoClient, ReturnDocument, UpdateOne
 from pymongo.errors import BulkWriteError, DuplicateKeyError
+from pymongo.write_concern import WriteConcern
 
 
 DEFAULT_SOURCE_TABLE = "iot_portal_tb_usage_log_rep"
@@ -23,6 +26,7 @@ DEFAULT_MONGO_DB = "eastel-data"
 DEFAULT_MONGO_COLLECTION = "usage_logs"
 DEFAULT_STATE_COLLECTION = "usage_log_sync_state"
 DEFAULT_BATCH_SIZE = 1000
+DEFAULT_WRITE_WORKERS = 1
 DEFAULT_POLL_INTERVAL_SECONDS = 60
 DEFAULT_MIN_RECORD_AGE_SECONDS = 0
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
@@ -59,6 +63,15 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=int(os.getenv("SYNC_BATCH_SIZE", DEFAULT_BATCH_SIZE)),
         help="Number of source rows fetched per batch.",
+    )
+    parser.add_argument(
+        "--write-workers",
+        type=int,
+        default=int(os.getenv("SYNC_WRITE_WORKERS", DEFAULT_WRITE_WORKERS)),
+        help=(
+            "Number of concurrent MongoDB bulk writes. Batches are still fetched in "
+            "usage_log_id order and the checkpoint only advances over fully written batches."
+        ),
     )
     parser.add_argument(
         "--poll-interval-seconds",
@@ -185,6 +198,22 @@ def get_mongo_client(config: dict[str, Any]) -> MongoClient:
     if not mongo_uri:
         raise ValueError("Missing MongoDB setting: MONGO_URI")
     return MongoClient(mongo_uri)
+
+
+def get_sync_write_concern(config: dict[str, Any]) -> WriteConcern | None:
+    """Optional write concern override for the bulk writes of this sync.
+
+    Atlas defaults to majority, which makes every batch wait for replication.
+    An unacknowledged-leader value such as '1' is much faster and stays safe
+    because rows are re-read from the checkpoint on the next run.
+    """
+    value = get_config_value(config, "mongo", "sync_write_concern", "MONGO_SYNC_WRITE_CONCERN")
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    if text.isdigit():
+        return WriteConcern(w=int(text))
+    return WriteConcern(w=text)
 
 
 def get_usage_source_table(config: dict[str, Any], default: str) -> str:
@@ -474,6 +503,31 @@ def fetch_rows_with_min_age(
         return cursor.fetchall()
 
 
+def build_operations(rows: list[dict[str, Any]], source_table: str, start_id: int) -> tuple[list[UpdateOne], int]:
+    operations = []
+    max_usage_log_id = start_id
+    for row in rows:
+        usage_log_id = int(row["usage_log_id"])
+        max_usage_log_id = max(max_usage_log_id, usage_log_id)
+        operations.append(
+            UpdateOne(
+                {"usage_log_id": usage_log_id},
+                {"$set": transform_row(row, source_table)},
+                upsert=True,
+            )
+        )
+    return operations, max_usage_log_id
+
+
+def write_batch(mongo_collection, operations: list[UpdateOne]) -> float:
+    started_at = time.perf_counter()
+    try:
+        mongo_collection.bulk_write(operations, ordered=False)
+    except BulkWriteError as exc:
+        raise RuntimeError(describe_bulk_write_error(exc)) from exc
+    return time.perf_counter() - started_at
+
+
 def sync_once(
     pg_conn,
     mongo_collection,
@@ -482,74 +536,90 @@ def sync_once(
     mongo_collection_name: str,
     batch_size: int,
     min_record_age_seconds: int,
+    write_workers: int = 1,
 ) -> int:
+    write_workers = max(1, write_workers)
+    max_in_flight = write_workers * 2
     total_processed = 0
+    checkpoint = get_last_synced_id(
+        state_collection=state_collection,
+        source_table=source_table,
+        mongo_collection=mongo_collection_name,
+    )
+    fetch_cursor = checkpoint
+    # (future, row_count, max_usage_log_id); batches are queued in id order so the
+    # checkpoint can only advance over the contiguous prefix that finished writing.
+    pending: deque[tuple[Any, int, int]] = deque()
 
-    while True:
-        batch_started_at = time.perf_counter()
-        last_usage_log_id = get_last_synced_id(
-            state_collection=state_collection,
-            source_table=source_table,
-            mongo_collection=mongo_collection_name,
-        )
-        fetch_started_at = time.perf_counter()
-        rows = fetch_rows_with_min_age(
-            pg_conn=pg_conn,
-            source_table=source_table,
-            last_usage_log_id=last_usage_log_id,
-            batch_size=batch_size,
-            min_record_age_seconds=min_record_age_seconds,
-        )
-        fetch_duration_seconds = time.perf_counter() - fetch_started_at
-        if not rows:
-            break
-
-        operations = []
-        max_usage_log_id = last_usage_log_id
-        transform_started_at = time.perf_counter()
-        for row in rows:
-            usage_log_id = int(row["usage_log_id"])
-            max_usage_log_id = max(max_usage_log_id, usage_log_id)
-            operations.append(
-                UpdateOne(
-                    {"usage_log_id": usage_log_id},
-                    {"$set": transform_row(row, source_table)},
-                    upsert=True,
-                )
-            )
-        transform_duration_seconds = time.perf_counter() - transform_started_at
-
-        mongo_write_started_at = time.perf_counter()
-        try:
-            mongo_collection.bulk_write(operations, ordered=False)
-        except BulkWriteError as exc:
-            raise RuntimeError(describe_bulk_write_error(exc)) from exc
-        mongo_write_duration_seconds = time.perf_counter() - mongo_write_started_at
-        checkpoint_started_at = time.perf_counter()
+    def commit_head(block_until_done: bool) -> bool:
+        nonlocal checkpoint, total_processed
+        if not pending:
+            return False
+        future, row_count, max_usage_log_id = pending[0]
+        if not block_until_done and not future.done():
+            return False
+        write_duration_seconds = future.result()
+        pending.popleft()
+        checkpoint = max_usage_log_id
         save_last_synced_id(
             state_collection=state_collection,
             source_table=source_table,
             mongo_collection=mongo_collection_name,
-            last_usage_log_id=max_usage_log_id,
+            last_usage_log_id=checkpoint,
         )
-        checkpoint_duration_seconds = time.perf_counter() - checkpoint_started_at
-
-        total_processed += len(rows)
-        batch_duration_seconds = time.perf_counter() - batch_started_at
-        rows_per_second = len(rows) / batch_duration_seconds if batch_duration_seconds > 0 else 0.0
+        total_processed += row_count
         print(
             f"[{datetime.now().isoformat(timespec='seconds')}] "
-            f"synced {len(rows)} rows, checkpoint={max_usage_log_id}, "
-            f"fetch={fetch_duration_seconds:.3f}s, "
-            f"transform={transform_duration_seconds:.3f}s, "
-            f"mongo_write={mongo_write_duration_seconds:.3f}s, "
-            f"checkpoint_save={checkpoint_duration_seconds:.3f}s, "
-            f"batch_total={batch_duration_seconds:.3f}s, "
-            f"rate={rows_per_second:.2f} rows/s"
+            f"synced {row_count} rows, checkpoint={checkpoint}, "
+            f"mongo_write={write_duration_seconds:.3f}s, "
+            f"in_flight={len(pending)}, workers={write_workers}"
         )
+        return True
 
-        if len(rows) < batch_size:
-            break
+    with ThreadPoolExecutor(max_workers=write_workers) as executor:
+        try:
+            while True:
+                fetch_started_at = time.perf_counter()
+                rows = fetch_rows_with_min_age(
+                    pg_conn=pg_conn,
+                    source_table=source_table,
+                    last_usage_log_id=fetch_cursor,
+                    batch_size=batch_size,
+                    min_record_age_seconds=min_record_age_seconds,
+                )
+                fetch_duration_seconds = time.perf_counter() - fetch_started_at
+                if not rows:
+                    break
+
+                transform_started_at = time.perf_counter()
+                operations, max_usage_log_id = build_operations(rows, source_table, fetch_cursor)
+                transform_duration_seconds = time.perf_counter() - transform_started_at
+                fetch_cursor = max_usage_log_id
+
+                if fetch_duration_seconds + transform_duration_seconds > 1:
+                    print(
+                        f"[{datetime.now().isoformat(timespec='seconds')}] "
+                        f"prepared {len(rows)} rows, fetch={fetch_duration_seconds:.3f}s, "
+                        f"transform={transform_duration_seconds:.3f}s"
+                    )
+
+                pending.append(
+                    (executor.submit(write_batch, mongo_collection, operations), len(rows), max_usage_log_id)
+                )
+
+                while commit_head(block_until_done=False):
+                    pass
+                while len(pending) >= max_in_flight:
+                    commit_head(block_until_done=True)
+
+                if len(rows) < batch_size:
+                    break
+
+            while commit_head(block_until_done=True):
+                pass
+        finally:
+            for future, _, _ in pending:
+                future.cancel()
 
     return total_processed
 
@@ -628,6 +698,15 @@ def main() -> None:
             DEFAULT_MIN_RECORD_AGE_SECONDS,
         )
     )
+    write_workers = int(
+        get_config_value(
+            config,
+            "sync",
+            "write_workers",
+            "SYNC_WRITE_WORKERS",
+            args.write_workers,
+        )
+    )
     continuous_mode = False if args.run_once else (
         args.continuous
         or str(
@@ -647,6 +726,9 @@ def main() -> None:
             mongo_db = mongo_client[mongo_db_name]
             mongo_collection = mongo_db[mongo_collection_name]
             state_collection = mongo_db[state_collection_name]
+            sync_write_concern = get_sync_write_concern(config)
+            if sync_write_concern is not None:
+                mongo_collection = mongo_collection.with_options(write_concern=sync_write_concern)
             validate_usage_collection_indexes(mongo_collection)
 
             if args.reset_state:
@@ -682,6 +764,7 @@ def main() -> None:
                         mongo_collection_name=mongo_collection_name,
                         batch_size=batch_size,
                         min_record_age_seconds=min_record_age_seconds,
+                        write_workers=write_workers,
                     )
 
                     if processed == 0:

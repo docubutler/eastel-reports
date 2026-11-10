@@ -40,6 +40,31 @@ Important sync tuning fields:
   are eligible to sync. Example: `7200` means "skip rows newer than 120 minutes old".
 - `lock_timeout_seconds`
   Mongo sync-lock expiry.
+- `write_workers`
+  Number of concurrent MongoDB bulk writes (default `1`). Batches are still read
+  in `usage_log_id` order and the checkpoint only advances over fully written
+  batches, so raising this is safe. Start with `4` and watch the Atlas CPU and
+  disk-IOPS metrics of the cluster.
+
+## Throughput
+
+Almost all of a batch's wall time is spent in `mongo_write`. In order of impact:
+
+1. `write_workers: 4` runs several bulk writes at once instead of one.
+2. `sync_write_concern: "1"` skips waiting for the Atlas majority acknowledgement.
+   Safe here because the checkpoint only moves after a batch completes, and a
+   replayed batch is an idempotent upsert.
+3. Keep `batch_size` in the 2000-5000 range; much larger batches make the
+   checkpoint lag and increase memory use without raising write throughput.
+4. Every index on the collection is maintained on each write. `usage_logs`
+   currently carries indexes that duplicate each other, for example
+   `msisdn_usage_start_service_type_idx` (msisdn, usage_start_time,
+   derived.service_type) already covers `ix_msisdn_usage_start_time`. Drop the
+   redundant ones with `db.usage_logs.drop_index(...)` after checking the Atlas
+   query profiler, and drop the leftover request-log `ix_session_id` when nothing
+   queries usage logs by session.
+5. If the cluster is already CPU or IOPS saturated, scale the Atlas tier instead;
+   extra workers will not help.
 
 ## Run
 
