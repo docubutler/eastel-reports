@@ -95,7 +95,9 @@ def main() -> None:
         print(f"Target collection: {mongo_db_name}.{mongo_collection_name}")
         print("Keeping unique indexes:")
         print(" - uq_request_log_id")
-        print(" - uq_session_request_rating_group")
+        print("Keeping lookup indexes:")
+        print(" - ix_session_request_rating_group")
+        print(" - ix_session_id")
 
         dropped = []
         missing = []

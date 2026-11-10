@@ -15,7 +15,7 @@ from bson.decimal128 import Decimal128
 from psycopg import sql
 from psycopg.rows import dict_row
 from pymongo import MongoClient, ReturnDocument, UpdateOne
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import BulkWriteError, DuplicateKeyError
 
 
 DEFAULT_SOURCE_TABLE = "iot_portal_tb_request_log"
@@ -351,6 +351,51 @@ def release_lock(
     state_collection.delete_one({"_id": lock_key, "owner_id": owner_id})
 
 
+def validate_request_collection_indexes(mongo_collection) -> None:
+    has_request_unique_index = False
+
+    for index in mongo_collection.list_indexes():
+        if (
+            index.get("name") == "uq_request_log_id"
+            and list(index.get("key", {}).items()) == [("request_log_id", 1)]
+            and index.get("unique")
+        ):
+            has_request_unique_index = True
+            break
+
+    if not has_request_unique_index:
+        raise RuntimeError(
+            "Mongo collection is missing the required unique index 'uq_request_log_id' on "
+            "'request_log_id'. Run create_mongo_request_log_collection.py before starting request sync."
+        )
+
+
+def describe_bulk_write_error(exc: BulkWriteError) -> str:
+    details = exc.details or {}
+    write_errors = details.get("writeErrors") or []
+    duplicate_errors = [error for error in write_errors if error.get("code") == 11000]
+    if not duplicate_errors:
+        return f"Mongo bulk write failed: {details}"
+
+    first_error = duplicate_errors[0]
+    index_name = first_error.get("index")
+    message = (
+        f"Mongo bulk write hit {len(duplicate_errors)} duplicate key error(s). "
+        f"Index: '{index_name}', key pattern: {first_error.get('keyPattern')}, "
+        f"key value: {first_error.get('keyValue')}. "
+        "The sync checkpoint was not advanced, so this batch is retried on the next run."
+    )
+    if index_name == "uq_session_request_rating_group":
+        message += (
+            " A legacy unique index is still enforcing "
+            "(session_id, session_req_num, rating_group) while the source table holds several "
+            "rows for that key. Run create_mongo_request_log_collection.py to replace it with the "
+            "non-unique 'ix_session_request_rating_group', and use "
+            "report_duplicate_request_keys.py to inspect the duplicates."
+        )
+    return message
+
+
 def fetch_rows(pg_conn, source_table: str, last_request_log_id: int, batch_size: int) -> list[dict[str, Any]]:
     return fetch_rows_with_min_age(
         pg_conn=pg_conn,
@@ -430,7 +475,10 @@ def sync_once(
         transform_duration_seconds = time.perf_counter() - transform_started_at
 
         mongo_write_started_at = time.perf_counter()
-        mongo_collection.bulk_write(operations, ordered=False)
+        try:
+            mongo_collection.bulk_write(operations, ordered=False)
+        except BulkWriteError as exc:
+            raise RuntimeError(describe_bulk_write_error(exc)) from exc
         mongo_write_duration_seconds = time.perf_counter() - mongo_write_started_at
         checkpoint_started_at = time.perf_counter()
         save_last_synced_id(
@@ -554,6 +602,7 @@ def main() -> None:
             mongo_db = mongo_client[mongo_db_name]
             mongo_collection = mongo_db[mongo_collection_name]
             state_collection = mongo_db[state_collection_name]
+            validate_request_collection_indexes(mongo_collection)
 
             if args.reset_state:
                 reset_state(state_collection, source_table, mongo_collection_name)

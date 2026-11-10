@@ -101,6 +101,27 @@ def ensure_collection(db, collection_name: str):
     return db[collection_name]
 
 
+SESSION_REQUEST_KEY = [("session_id", ASCENDING), ("session_req_num", ASCENDING), ("rating_group", ASCENDING)]
+LEGACY_SESSION_REQUEST_UNIQUE_INDEX = "uq_session_request_rating_group"
+
+
+def drop_legacy_session_request_unique_index(collection) -> list[str]:
+    """Drop the unique index that made (session_id, session_req_num, rating_group) exclusive.
+
+    The source table can hold several rows for the same business key (for example
+    repeated terminate records carrying the 88888888 sequence-number sentinel), so
+    uniqueness has to stay with PostgreSQL. The tuple is still indexed for lookups.
+    """
+    dropped_indexes = []
+    for index in collection.list_indexes():
+        is_legacy_name = index.get("name") == LEGACY_SESSION_REQUEST_UNIQUE_INDEX
+        is_same_key = index.get("unique") and list(index.get("key", {}).items()) == SESSION_REQUEST_KEY
+        if is_legacy_name or is_same_key:
+            collection.drop_index(index["name"])
+            dropped_indexes.append(index["name"])
+    return dropped_indexes
+
+
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
@@ -134,6 +155,7 @@ def main() -> None:
         db = client[mongo_db_name]
         request_collection = ensure_collection(db, mongo_collection_name)
         state_collection = ensure_collection(db, state_collection_name)
+        dropped_indexes = drop_legacy_session_request_unique_index(request_collection)
 
         created_indexes = []
         created_indexes.append(
@@ -146,8 +168,7 @@ def main() -> None:
         created_indexes.append(
             request_collection.create_index(
                 [("session_id", ASCENDING), ("session_req_num", ASCENDING), ("rating_group", ASCENDING)],
-                name="uq_session_request_rating_group",
-                unique=True,
+                name="ix_session_request_rating_group",
             )
         )
         created_indexes.append(
@@ -199,6 +220,10 @@ def main() -> None:
             )
         )
         print("Mongo request log collection is ready.")
+        if dropped_indexes:
+            print("Dropped legacy unique indexes:")
+            for index_name in dropped_indexes:
+                print(f" - {index_name}")
         print("Indexes ensured:")
         for index_name in created_indexes:
             print(f" - {index_name}")

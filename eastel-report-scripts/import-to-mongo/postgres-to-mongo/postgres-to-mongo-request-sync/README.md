@@ -9,6 +9,7 @@ This folder contains the standalone request-log sync flow from PostgreSQL to Mon
 - `requirements.txt`
 - `create_mongo_request_log_collection.py`
 - `postgres_to_mongo_request_log_sync.py`
+- `report_duplicate_request_keys.py`
 - `drop_request_log_reporting_indexes.py`
 - `recreate_request_log_reporting_indexes.py`
 - `release_request_log_sync_lock.py`
@@ -51,7 +52,24 @@ python create_mongo_request_log_collection.py
 python postgres_to_mongo_request_log_sync.py
 ```
 
-### Background (Linux)
+### Duplicate business keys in the source
+
+PostgreSQL can hold several rows for the same
+`(session_id, session_req_num, rating_group)` — typically repeated terminate
+records carrying the `session_req_num` sentinel `88888888`. The Mongo collection
+therefore keeps only `uq_request_log_id` unique and indexes the triple with the
+non-unique `ix_session_request_rating_group`. To look at those rows:
+
+```powershell
+python report_duplicate_request_keys.py
+```
+
+It is read-only and scans the rows above the stored sync checkpoint. Use
+`--scan-all` for the whole table or `--min-request-log-id <id>` for a window.
+Duplicates are mirrored into MongoDB as-is, so report queries that sum usage per
+session may count the same session more than once until the source is cleaned.
+
+#### Background (Linux)
 
 #### Option 1: Using nohup
 
