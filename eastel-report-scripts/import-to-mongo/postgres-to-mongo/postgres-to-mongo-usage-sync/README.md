@@ -53,3 +53,8 @@ collection: it drops every unique index except the `uq_usage_log_id` key and the
 ensures the usage indexes. Run it whenever the sync reports incompatible unique
 indexes (for example `uq_session_request_rating_group`, which belongs to
 `request_logs` and rejects usage rows whose request-log fields are absent).
+
+It also drops two indexes that cost write time without serving a query:
+`ix_session_id` (left over from the request_logs schema, no usage report filters
+by session_id) and `ix_msisdn_usage_start_time` (already covered by the `msisdn`
+prefix of `msisdn_usage_start_service_type_idx`).

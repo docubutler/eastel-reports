@@ -10,6 +10,7 @@ DEFAULT_MONGO_DB = "eastel-data"
 DEFAULT_MONGO_COLLECTION = "usage_logs"
 DEFAULT_STATE_COLLECTION = "usage_log_sync_state"
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
+REDUNDANT_INDEX_NAMES = ("ix_session_id", "ix_msisdn_usage_start_time")
 
 
 def parse_args() -> argparse.Namespace:
@@ -120,6 +121,22 @@ def drop_incompatible_unique_indexes(collection) -> list[dict]:
     return incompatible_indexes
 
 
+def drop_redundant_indexes(collection) -> list[str]:
+    """Drop indexes that cost write time without serving a query.
+
+    ix_session_id comes from the request_logs schema and no usage report filters
+    by session_id. ix_msisdn_usage_start_time is covered by the msisdn prefix of
+    msisdn_usage_start_service_type_idx.
+    """
+    existing_names = {index.get("name") for index in collection.list_indexes()}
+    dropped_indexes = []
+    for index_name in REDUNDANT_INDEX_NAMES:
+        if index_name in existing_names:
+            collection.drop_index(index_name)
+            dropped_indexes.append(index_name)
+    return dropped_indexes
+
+
 def main() -> None:
     args = parse_args()
     config = load_config(args.config)
@@ -154,6 +171,7 @@ def main() -> None:
         usage_collection = ensure_collection(db, mongo_collection_name)
         state_collection = ensure_collection(db, state_collection_name)
         dropped_indexes = drop_incompatible_unique_indexes(usage_collection)
+        dropped_redundant_indexes = drop_redundant_indexes(usage_collection)
 
         created_indexes = []
         created_indexes.append(
@@ -161,12 +179,6 @@ def main() -> None:
                 [("usage_log_id", ASCENDING)],
                 name="uq_usage_log_id",
                 unique=True,
-            )
-        )
-        created_indexes.append(
-            usage_collection.create_index(
-                [("msisdn", ASCENDING), ("usage_start_time", ASCENDING)],
-                name="ix_msisdn_usage_start_time",
             )
         )
         created_indexes.append(
@@ -234,6 +246,10 @@ def main() -> None:
             print("Dropped incompatible unique indexes:")
             for index in dropped_indexes:
                 print(f" - {index['name']} {index['key']}")
+        if dropped_redundant_indexes:
+            print("Dropped redundant indexes:")
+            for index_name in dropped_redundant_indexes:
+                print(f" - {index_name}")
         print("Indexes ensured:")
         for index_name in created_indexes:
             print(f" - {index_name}")
