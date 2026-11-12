@@ -1,4 +1,5 @@
 import argparse
+import gc
 import logging
 import os
 import sys
@@ -27,6 +28,8 @@ DEFAULT_POLL_INTERVAL_SECONDS = 60
 DEFAULT_MIN_RECORD_AGE_SECONDS = 0
 DEFAULT_CONFIG_PATH = Path(__file__).with_name("config.yml")
 DEFAULT_LOCK_TIMEOUT_SECONDS = 3600
+DEFAULT_OOM_RETRY_ATTEMPTS = 5
+DEFAULT_OOM_RETRY_DELAY_SECONDS = 30
 SCRIPT_NAME = "postgres_to_mongo_usage_sync"
 
 
@@ -474,6 +477,36 @@ def fetch_rows_with_min_age(
         return cursor.fetchall()
 
 
+def write_batch(
+    mongo_collection,
+    operations: list[UpdateOne],
+    oom_retry_attempts: int,
+    oom_retry_delay_seconds: int,
+) -> None:
+    """Write one batch, retrying when the process is momentarily out of memory.
+
+    The checkpoint is only saved after a batch is written, so replaying the same
+    operations is safe: they are idempotent upserts.
+    """
+    for attempt in range(1, oom_retry_attempts + 1):
+        try:
+            mongo_collection.bulk_write(operations, ordered=False)
+            return
+        except BulkWriteError as exc:
+            raise RuntimeError(describe_bulk_write_error(exc)) from exc
+        except MemoryError:
+            if attempt >= oom_retry_attempts:
+                raise
+            print(
+                f"[{datetime.now().isoformat(timespec='seconds')}] "
+                f"out of memory writing {len(operations)} rows "
+                f"(attempt {attempt}/{oom_retry_attempts}), retrying in {oom_retry_delay_seconds}s",
+                flush=True,
+            )
+            gc.collect()
+            time.sleep(oom_retry_delay_seconds)
+
+
 def sync_once(
     pg_conn,
     mongo_collection,
@@ -482,6 +515,8 @@ def sync_once(
     mongo_collection_name: str,
     batch_size: int,
     min_record_age_seconds: int,
+    oom_retry_attempts: int = DEFAULT_OOM_RETRY_ATTEMPTS,
+    oom_retry_delay_seconds: int = DEFAULT_OOM_RETRY_DELAY_SECONDS,
 ) -> int:
     total_processed = 0
 
@@ -504,6 +539,7 @@ def sync_once(
         if not rows:
             break
 
+        row_count = len(rows)
         operations = []
         max_usage_log_id = last_usage_log_id
         transform_started_at = time.perf_counter()
@@ -518,12 +554,17 @@ def sync_once(
                 )
             )
         transform_duration_seconds = time.perf_counter() - transform_started_at
+        # Free the source rows before the write; the batch message is built from
+        # operations and both being alive doubles peak memory.
+        del rows
 
         mongo_write_started_at = time.perf_counter()
-        try:
-            mongo_collection.bulk_write(operations, ordered=False)
-        except BulkWriteError as exc:
-            raise RuntimeError(describe_bulk_write_error(exc)) from exc
+        write_batch(
+            mongo_collection=mongo_collection,
+            operations=operations,
+            oom_retry_attempts=oom_retry_attempts,
+            oom_retry_delay_seconds=oom_retry_delay_seconds,
+        )
         mongo_write_duration_seconds = time.perf_counter() - mongo_write_started_at
         checkpoint_started_at = time.perf_counter()
         save_last_synced_id(
@@ -534,12 +575,12 @@ def sync_once(
         )
         checkpoint_duration_seconds = time.perf_counter() - checkpoint_started_at
 
-        total_processed += len(rows)
+        total_processed += row_count
         batch_duration_seconds = time.perf_counter() - batch_started_at
-        rows_per_second = len(rows) / batch_duration_seconds if batch_duration_seconds > 0 else 0.0
+        rows_per_second = row_count / batch_duration_seconds if batch_duration_seconds > 0 else 0.0
         print(
             f"[{datetime.now().isoformat(timespec='seconds')}] "
-            f"synced {len(rows)} rows, checkpoint={max_usage_log_id}, "
+            f"synced {row_count} rows, checkpoint={max_usage_log_id}, "
             f"fetch={fetch_duration_seconds:.3f}s, "
             f"transform={transform_duration_seconds:.3f}s, "
             f"mongo_write={mongo_write_duration_seconds:.3f}s, "
@@ -548,7 +589,7 @@ def sync_once(
             f"rate={rows_per_second:.2f} rows/s"
         )
 
-        if len(rows) < batch_size:
+        if row_count < batch_size:
             break
 
     return total_processed
@@ -628,6 +669,24 @@ def main() -> None:
             DEFAULT_MIN_RECORD_AGE_SECONDS,
         )
     )
+    oom_retry_attempts = int(
+        get_config_value(
+            config,
+            "sync",
+            "oom_retry_attempts",
+            "SYNC_OOM_RETRY_ATTEMPTS",
+            DEFAULT_OOM_RETRY_ATTEMPTS,
+        )
+    )
+    oom_retry_delay_seconds = int(
+        get_config_value(
+            config,
+            "sync",
+            "oom_retry_delay_seconds",
+            "SYNC_OOM_RETRY_DELAY_SECONDS",
+            DEFAULT_OOM_RETRY_DELAY_SECONDS,
+        )
+    )
     continuous_mode = False if args.run_once else (
         args.continuous
         or str(
@@ -682,6 +741,8 @@ def main() -> None:
                         mongo_collection_name=mongo_collection_name,
                         batch_size=batch_size,
                         min_record_age_seconds=min_record_age_seconds,
+                        oom_retry_attempts=oom_retry_attempts,
+                        oom_retry_delay_seconds=oom_retry_delay_seconds,
                     )
 
                     if processed == 0:

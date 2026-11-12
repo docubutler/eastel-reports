@@ -40,6 +40,11 @@ Important sync tuning fields:
   are eligible to sync. Example: `7200` means "skip rows newer than 120 minutes old".
 - `lock_timeout_seconds`
   Mongo sync-lock expiry.
+- `oom_retry_attempts` / `oom_retry_delay_seconds`
+  How many times a batch is retried when the Python process runs out of memory
+  while building the write (default `5` attempts, `30` seconds apart). The batch is
+  replayed as-is, which is safe because the writes are idempotent upserts and the
+  checkpoint only advances after a successful write.
 
 ## Run
 
