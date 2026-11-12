@@ -1,0 +1,28 @@
+postgres:
+  dsn: ""
+  host: "localhost"
+  port: 5432
+  database: "anchor_iot"
+  user: "your_user"
+  password: "your_password"
+  sslmode: "disable"
+
+mongo:
+  uri: "******cluster.mongodb.net/?retryWrites=true&w=majority"
+  eastel_database: "eastel-data"
+  eastel_usage_collection: "usage_logs"
+  eastel_usage_state_collection: "usage_log_sync_state"
+
+sync:
+  postgres_usage_source_table: "iot_portal_tb_usage_log"
+  lock_timeout_seconds: 3600
+  oom_retry_attempts: 5
+  oom_retry_delay_seconds: 30
+
+backfill:
+  msisdns_csv: "msisdns.csv"
+  batch_size: 1000
+
+logging:
+  level: "INFO"
+  file_path: "D:/var/logs/postgres_to_mongo_msisdn_backfill.log"

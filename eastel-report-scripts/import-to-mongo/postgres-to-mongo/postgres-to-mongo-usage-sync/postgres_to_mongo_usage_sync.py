@@ -276,12 +276,13 @@ def transform_row(row: dict[str, Any], source_table: str) -> dict[str, Any]:
     return doc
 
 
-def get_state_key(source_table: str, mongo_collection: str) -> str:
-    return f"{source_table}->{mongo_collection}"
+def get_state_key(source_table: str, mongo_collection: str, label: str | None = None) -> str:
+    state_key = f"{source_table}->{mongo_collection}"
+    return f"{label}::{state_key}" if label else state_key
 
 
-def get_lock_key(source_table: str, mongo_collection: str) -> str:
-    return f"lock::{get_state_key(source_table, mongo_collection)}"
+def get_lock_key(source_table: str, mongo_collection: str, label: str | None = None) -> str:
+    return f"lock::{get_state_key(source_table, mongo_collection, label)}"
 
 
 def get_last_synced_id(state_collection, source_table: str, mongo_collection: str) -> int:
@@ -324,8 +325,9 @@ def acquire_lock(
     mongo_collection: str,
     owner_id: str,
     lock_timeout_seconds: int,
+    label: str | None = None,
 ) -> None:
-    lock_key = get_lock_key(source_table, mongo_collection)
+    lock_key = get_lock_key(source_table, mongo_collection, label)
     now = datetime.now(timezone.utc)
     expires_at = datetime.fromtimestamp(now.timestamp() + lock_timeout_seconds, tz=timezone.utc)
     try:
@@ -367,8 +369,9 @@ def refresh_lock(
     mongo_collection: str,
     owner_id: str,
     lock_timeout_seconds: int,
+    label: str | None = None,
 ) -> None:
-    lock_key = get_lock_key(source_table, mongo_collection)
+    lock_key = get_lock_key(source_table, mongo_collection, label)
     now = datetime.now(timezone.utc)
     expires_at = datetime.fromtimestamp(now.timestamp() + lock_timeout_seconds, tz=timezone.utc)
     result = state_collection.update_one(
@@ -384,8 +387,9 @@ def release_lock(
     source_table: str,
     mongo_collection: str,
     owner_id: str,
+    label: str | None = None,
 ) -> None:
-    lock_key = get_lock_key(source_table, mongo_collection)
+    lock_key = get_lock_key(source_table, mongo_collection, label)
     state_collection.delete_one({"_id": lock_key, "owner_id": owner_id})
 
 
