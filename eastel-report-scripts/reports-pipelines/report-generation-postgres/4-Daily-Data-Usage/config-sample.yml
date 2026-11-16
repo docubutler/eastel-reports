@@ -1,0 +1,26 @@
+# POSTGRES_DSN overrides dsn. Otherwise use PGHOST, PGPORT, PGDATABASE,
+# PGUSER, PGPASSWORD, PGSSLMODE or these fields. No credentials are committed.
+postgres:
+  dsn: ""
+  host: "localhost"
+  port: 5432
+  database: "anchor_iot"
+  user: "anchor_readonly"
+  password: ""
+  sslmode: "prefer"
+  connect_timeout: 15
+
+report_generation:
+  output_csv: "4-Daily-Data-Usage.csv"
+  statement_timeout_ms: 600000
+
+tables:
+  # Reporting copy of the live usage table. Change this when a month lives in a
+  # rolled-over archive instead, for example:
+  #   public.iot_portal_tb_usage_log_old20260930
+  usage_log_table: "public.iot_portal_tb_usage_log"
+
+variables:
+  # Inclusive end date. The script builds end_date_exclusive = end_date + 1 day.
+  start_date: "2026-10-01"
+  end_date: "2026-10-31"

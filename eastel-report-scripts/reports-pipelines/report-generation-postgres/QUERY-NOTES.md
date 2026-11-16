@@ -666,6 +666,13 @@ plus a long tail of ≤ 7-row numbers. So `LIKE '60182330%'` is **not** selectiv
 
 ## 8. Change log
 
+- **2026-11-16** — Added `4-Daily-Data-Usage/`: day-wise 4G/5G domestic data
+  usage (`Date | 4G MB | 5G MB | Total`) for the U Mobile CDR reconciliation.
+  It reuses the `Q006`/`Q007` definition exactly (`rat_type IN ('4G','5G')`,
+  `roaming_destination_id = 87`, `rating_group <> '500003'`,
+  `act_usage_unit / 1048576`), so its month total ties to the Invoice Recon.
+  Days with no records are emitted as `0.00` via a `generate_series` day spine.
+
 - **2026-10-05** — Added the September evidence correcting the earlier equality
   assumption for referenced/grant plan IDs; clarified template versus instance
   uniqueness, documented the rolled-over source and read-only local CSV joins,
