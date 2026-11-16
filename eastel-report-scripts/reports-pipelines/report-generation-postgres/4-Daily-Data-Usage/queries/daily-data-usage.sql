@@ -27,12 +27,13 @@ WITH params AS (
         %(end_date_exclusive)s::timestamp AS window_end
 ),
 day_spine AS (
-    -- A plain integer series plus date arithmetic, rather than interval
-    -- generate_series, so the spine is a normal FROM item.
-    SELECT p.window_start::date + g.generate_series::integer AS usage_date
+    -- The explicit output-column alias is required: PostgreSQL names a
+    -- set-returning function's column after the function itself, so
+    -- `AS g` alone would not expose `g.offset_days`.
+    SELECT p.window_start::date + g.offset_days::integer AS usage_date
     FROM params p
-    CROSS JOIN generate_series(0, 366) AS g
-    WHERE g.generate_series < (p.window_end::date - p.window_start::date)
+    CROSS JOIN generate_series(0, 366) AS g(offset_days)
+    WHERE g.offset_days < (p.window_end::date - p.window_start::date)
 ),
 daily AS (
     SELECT
