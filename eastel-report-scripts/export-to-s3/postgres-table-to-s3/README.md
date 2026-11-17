@@ -110,7 +110,18 @@ target size.
 
 ## Restoring the parts
 
-Each part is plain gzipped CSV, so a single part loads with:
+`restore_from_s3.py` does the whole of the below automatically: it streams each
+part from S3 through gunzip straight into `COPY ... FROM STDIN` (no local disk),
+verifies each part's sha256 against the manifest and rolls that part back on a
+mismatch, and records progress in `restore-state.json` so it can resume.
+
+```powershell
+py .\restore_from_s3.py --status
+py .\restore_from_s3.py
+py .\restore_from_s3.py --verify
+```
+
+Each part is plain gzipped CSV, so a single part also loads by hand:
 
 ```powershell
 psql -c "\copy public.iot_portal_tb_usage_log_old20260930 FROM PROGRAM 'gunzip -c iot_portal_tb_usage_log_old20260930_00001.csv.gz' WITH (FORMAT csv, HEADER true)"

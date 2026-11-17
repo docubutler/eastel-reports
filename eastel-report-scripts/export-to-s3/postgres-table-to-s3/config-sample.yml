@@ -58,5 +58,16 @@ export:
   statement_timeout_ms: 0
   part_name_padding: 5
 
+# Only used by restore_from_s3.py.
+restore:
+  target_table: "public.iot_portal_tb_usage_log_old20260930"
+  # TRUNCATE before the first part is loaded.
+  truncate_first: false
+  # Re-hash every part and roll it back if it does not match the manifest.
+  verify_checksums: true
+  state_key: "restore-state.json"
+  chunk_bytes: 1048576
+  statement_timeout_ms: 0
+
 logging:
   level: "INFO"
