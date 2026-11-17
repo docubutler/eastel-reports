@@ -1,0 +1,62 @@
+# POSTGRES_DSN overrides dsn. Otherwise use PGHOST, PGPORT, PGDATABASE,
+# PGUSER, PGPASSWORD, PGSSLMODE or these fields. No credentials are committed.
+postgres:
+  dsn: ""
+  host: "localhost"
+  port: 5432
+  database: "anchor_iot"
+  user: "anchor_readonly"
+  password: ""
+  sslmode: "prefer"
+  connect_timeout: 15
+
+# AWS credentials come from the standard boto3 chain (env vars, profile, or an
+# instance/task role). Nothing secret belongs in this file.
+s3:
+  bucket: "your-bucket-name"
+  prefix: "exports/usage-logs/2026-09"
+  region: "ap-southeast-1"
+  # Leave blank for AWS. Set for MinIO / LocalStack / a gateway.
+  endpoint_url: ""
+  # STANDARD | STANDARD_IA | ONEZONE_IA | GLACIER_IR | DEEP_ARCHIVE
+  storage_class: "STANDARD_IA"
+  # AES256 or aws:kms. Leave blank to use the bucket default.
+  sse: ""
+
+export:
+  source_table: "public.iot_portal_tb_usage_log_old20260930"
+  # csv is the fastest option and preserves numeric(32,16) exactly.
+  # jsonl emits one row_to_json document per line instead.
+  format: "csv"
+  # Must be unique and indexed; it is the resume cursor.
+  resume_column: "usage_log_id"
+  # Empty = every column in table order. Set explicitly to shrink the export.
+  columns: []
+  # Optional raw SQL predicate, for example: "usage_start_time < '2026-10-01'"
+  where: ""
+
+  # Target size of each part before compression. Parts are named
+  # <table>_00001.csv.gz, <table>_00002.csv.gz, ... and land around this size.
+  max_part_bytes: 52428800          # 50 MiB uncompressed (~15 MiB gzipped)
+  # Seed for the size adaptation; adjusted automatically per part.
+  initial_batch_rows: 100000
+
+  header: true                      # CSV header on every part (standalone-loadable)
+  compress: true
+  gzip_level: 6
+
+  # Bytes are streamed straight into S3 with a multipart upload; nothing is
+  # written to local disk. This is the in-memory buffer size per uploaded part
+  # (S3 requires >= 5 MiB, and it is not the part-file size on disk).
+  multipart_part_bytes: 8388608     # 8 MiB
+
+  # A part that grows past max_part_bytes * (1 + tolerance) is abandoned before
+  # anything is committed, and the same key range is retried with fewer rows.
+  overshoot_tolerance: 0.05
+
+  # 0 disables the statement timeout.
+  statement_timeout_ms: 0
+  part_name_padding: 5
+
+logging:
+  level: "INFO"

@@ -285,6 +285,7 @@ it cannot substitute for the instance-level mapping.
 | Folder | What it does |
 |---|---|
 | `import-to-mongo/` | Postgres → Mongo sync, plus backfill/repair tools |
+| `export-to-s3/` | Archive a Postgres table to size-split gzipped CSV parts in S3 (streamed, resumable) |
 | `reports-pipelines/` | Report generation (Postgres and Mongo variants) |
 | `queries/` | Reusable SQL and column references for the portal tables |
 | `helper-data-ingestor/` | Reference-data ingest (country codes, roaming destinations) |
