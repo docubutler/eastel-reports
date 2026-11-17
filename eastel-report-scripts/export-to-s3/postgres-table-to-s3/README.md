@@ -80,6 +80,11 @@ uploaded it records:
 - `parts[]` — per part: index, key, rows, bytes, `after_key`, `last_key`, sha256
 - `totals` — parts, rows, bytes, bytes stored
 
+Key values are stored type-tagged, for example
+`{"__type__": "decimal", "value": "124907541"}`. The production key is
+`numeric(20,0)`, which psycopg2 hands back as `Decimal`, so tagging keeps the
+resumed comparison numeric rather than turning it into a text comparison.
+
 The next run reads the manifest and continues with `resume_column > last_key`.
 A part is only recorded after its upload succeeds, so the resume boundary is
 always a complete part; a crash mid-part just redoes that part. Re-running an

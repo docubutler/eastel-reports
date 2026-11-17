@@ -11,8 +11,10 @@ import os
 import re
 import sys
 import time
+import uuid
 import zlib
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -199,6 +201,44 @@ def _literal(value: Any) -> str:
     if value is None:
         return "NULL"
     return psycopg2.extensions.adapt(value).getquoted().decode()
+
+
+def encode_key(value: Any) -> Any:
+    """JSON-safe form of a resume key that keeps its SQL type.
+
+    psycopg2 returns Decimal for numeric columns and datetime for timestamps;
+    neither survives json.dumps as-is. Tagging preserves the type so the resumed
+    WHERE clause still compares numerically instead of as text.
+    """
+    if value is None or isinstance(value, (int, float, str, bool)):
+        return value
+    if isinstance(value, Decimal):
+        return {"__type__": "decimal", "value": str(value)}
+    if isinstance(value, datetime):
+        return {"__type__": "datetime", "value": value.isoformat()}
+    if isinstance(value, date):
+        return {"__type__": "date", "value": value.isoformat()}
+    if isinstance(value, uuid.UUID):
+        return {"__type__": "uuid", "value": str(value)}
+    raise TypeError(
+        f"Unsupported resume key type {type(value).__name__}; "
+        "use an integer, numeric, text, date, timestamp or uuid resume_column."
+    )
+
+
+def decode_key(value: Any) -> Any:
+    if isinstance(value, dict) and "__type__" in value:
+        kind = value["__type__"]
+        raw = value.get("value")
+        if kind == "decimal":
+            return Decimal(str(raw))
+        if kind == "datetime":
+            return datetime.fromisoformat(str(raw))
+        if kind == "date":
+            return date.fromisoformat(str(raw))
+        if kind == "uuid":
+            return uuid.UUID(str(raw))
+    return value
 
 
 def _filters(settings: Settings, last_key: Any, upper_key: Any) -> str:
@@ -582,14 +622,15 @@ def export_parts(args: argparse.Namespace, settings: Settings, connection: Any, 
     if manifest:
         LOG.info(
             "Resuming: %s part(s), %s row(s), last key %s",
-            manifest["totals"]["parts"], f"{manifest['totals']['rows']:,}", manifest["last_key"],
+            manifest["totals"]["parts"], f"{manifest['totals']['rows']:,}",
+            decode_key(manifest["last_key"]),
         )
     else:
         manifest = new_manifest(settings, columns)
         LOG.info("Starting a new export of %s -> %s", settings.table, sink.location)
 
     manifest["target"]["location"] = sink.location
-    last_key = manifest["last_key"]
+    last_key = decode_key(manifest["last_key"])
     part_index = manifest["totals"]["parts"] + 1
     batch_rows = settings.batch_rows
     started = time.perf_counter()
@@ -658,15 +699,15 @@ def export_parts(args: argparse.Namespace, settings: Settings, connection: Any, 
                     "rows": rows,
                     "bytes": uncompressed,
                     "bytes_stored": stored,
-                    "after_key": last_key,
-                    "last_key": chunk_last_key,
+                    "after_key": encode_key(last_key),
+                    "last_key": encode_key(chunk_last_key),
                     "sha256": checksum,
                 })
                 manifest["totals"]["parts"] = part_index
                 manifest["totals"]["rows"] += rows
                 manifest["totals"]["bytes"] += uncompressed
                 manifest["totals"]["bytes_stored"] += stored
-                manifest["last_key"] = chunk_last_key
+                manifest["last_key"] = encode_key(chunk_last_key)
                 manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
                 if upper_key is None:
                     manifest["status"] = "completed"
@@ -733,7 +774,7 @@ def print_status(sink: Any) -> int:
     print(f"parts     : {manifest['totals']['parts']}")
     print(f"rows      : {manifest['totals']['rows']:,}")
     print(f"bytes     : {format_bytes(manifest['totals']['bytes'])} -> {format_bytes(manifest['totals']['bytes_stored'])} stored")
-    print(f"last key  : {manifest['last_key']}")
+    print(f"last key  : {decode_key(manifest['last_key'])}")
     print(f"updated   : {manifest['updated_at']}")
     return 0
 
