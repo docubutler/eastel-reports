@@ -36,8 +36,13 @@ Important sync tuning fields:
 - `poll_interval_seconds`
   Sleep time between polling cycles when `continuous: true`.
 - `min_record_age_seconds`
-  Optional settle-time gate. Only rows with `cr_time <= now() - min_record_age_seconds`
-  are eligible to sync. Example: `7200` means "skip rows newer than 120 minutes old".
+  Settle-time gate. Only rows with `cr_time` older than this many seconds are
+  copied, so a row that is still being updated is not written yet. Example:
+  `7200` means "wait 120 minutes after `cr_time`"; `86400` means 24 hours.
+  Rows are never skipped: if a row is still inside the window, the checkpoint
+  stops just before it and the sync resumes from that exact id once it settles.
+  The cutoff is evaluated by PostgreSQL (`statement_timestamp()`), so it matches
+  `cr_time` whatever timezone the column is written in.
 - `lock_timeout_seconds`
   Mongo sync-lock expiry.
 - `oom_retry_attempts` / `oom_retry_delay_seconds`

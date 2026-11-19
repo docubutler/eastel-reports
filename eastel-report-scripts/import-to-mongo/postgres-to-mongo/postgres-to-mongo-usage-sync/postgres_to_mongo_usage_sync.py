@@ -448,37 +448,85 @@ def describe_bulk_write_error(exc: BulkWriteError) -> str:
     return message
 
 
-def fetch_rows(pg_conn, source_table: str, last_usage_log_id: int, batch_size: int) -> list[dict[str, Any]]:
-    return fetch_rows_with_min_age(
-        pg_conn=pg_conn,
-        source_table=source_table,
-        last_usage_log_id=last_usage_log_id,
-        batch_size=batch_size,
-        min_record_age_seconds=0,
-    )
-
-
-def fetch_rows_with_min_age(
+def fetch_settled_rows(
     pg_conn,
     source_table: str,
     last_usage_log_id: int,
     batch_size: int,
     min_record_age_seconds: int,
 ) -> list[dict[str, Any]]:
+    """Rows above the checkpoint that are older than the settle window.
+
+    The cutoff is computed inside PostgreSQL from ``statement_timestamp()`` so the
+    comparison happens in the same time reference as ``cr_time``, whatever
+    timezone that column is written in. ``now()`` is deliberately not used: it is
+    frozen at transaction start and this connection stays in one transaction.
+    """
     query = sql.SQL(
         """
         SELECT *
         FROM {source_table}
         WHERE usage_log_id > %s
-          AND cr_time <= %s
+          AND cr_time <= (statement_timestamp()::timestamp) - make_interval(secs => %s)
         ORDER BY usage_log_id ASC
         LIMIT %s
         """
     ).format(source_table=sql.Identifier(source_table))
-    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=min_record_age_seconds)
     with pg_conn.cursor() as cursor:
-        cursor.execute(query, (last_usage_log_id, cutoff, batch_size))
+        cursor.execute(query, (last_usage_log_id, min_record_age_seconds, batch_size))
         return cursor.fetchall()
+
+
+def find_settle_barrier(
+    pg_conn,
+    source_table: str,
+    last_usage_log_id: int,
+    highest_fetched_id: int,
+    min_record_age_seconds: int,
+) -> tuple[int, Any] | None:
+    """First still-settling row between the checkpoint and the last fetched row.
+
+    The checkpoint must not move past this id: every later query asks for
+    ``usage_log_id > checkpoint``, so a row left behind would never be fetched
+    again. Returns ``(usage_log_id, cr_time)`` or ``None`` when the whole range is
+    already settled.
+    """
+    query = sql.SQL(
+        """
+        SELECT usage_log_id, cr_time
+        FROM {source_table}
+        WHERE usage_log_id > %s
+          AND usage_log_id <= %s
+          AND cr_time > (statement_timestamp()::timestamp) - make_interval(secs => %s)
+        ORDER BY usage_log_id ASC
+        LIMIT 1
+        """
+    ).format(source_table=sql.Identifier(source_table))
+    with pg_conn.cursor() as cursor:
+        cursor.execute(
+            query, (last_usage_log_id, highest_fetched_id, min_record_age_seconds)
+        )
+        row = cursor.fetchone()
+    if not row:
+        return None
+    return int(row["usage_log_id"]), row.get("cr_time")
+
+
+def trim_to_settled_prefix(
+    rows: list[dict[str, Any]],
+    barrier_id: int | None,
+    previous_checkpoint: int,
+) -> tuple[list[dict[str, Any]], int]:
+    """Keep only the contiguous run of ids below the barrier.
+
+    The checkpoint never moves backwards, and never past an id that has not been
+    written, so no row can be skipped.
+    """
+    if barrier_id is not None:
+        rows = [row for row in rows if int(row["usage_log_id"]) < barrier_id]
+    if not rows:
+        return [], previous_checkpoint
+    return rows, max(int(row["usage_log_id"]) for row in rows)
 
 
 def write_batch(
@@ -532,7 +580,7 @@ def sync_once(
             mongo_collection=mongo_collection_name,
         )
         fetch_started_at = time.perf_counter()
-        rows = fetch_rows_with_min_age(
+        rows = fetch_settled_rows(
             pg_conn=pg_conn,
             source_table=source_table,
             last_usage_log_id=last_usage_log_id,
@@ -543,13 +591,33 @@ def sync_once(
         if not rows:
             break
 
+        fetched_count = len(rows)
+        highest_fetched_id = max(int(row["usage_log_id"]) for row in rows)
+        barrier_started_at = time.perf_counter()
+        barrier = find_settle_barrier(
+            pg_conn=pg_conn,
+            source_table=source_table,
+            last_usage_log_id=last_usage_log_id,
+            highest_fetched_id=highest_fetched_id,
+            min_record_age_seconds=min_record_age_seconds,
+        )
+        barrier_duration_seconds = time.perf_counter() - barrier_started_at
+        barrier_id = barrier[0] if barrier else None
+        rows, new_checkpoint = trim_to_settled_prefix(rows, barrier_id, last_usage_log_id)
+        if not rows:
+            print(
+                f"[{datetime.now().isoformat(timespec='seconds')}] "
+                f"waiting for settlement: usage_log_id={barrier_id} "
+                f"cr_time={barrier[1]} is inside the {min_record_age_seconds}s window",
+                flush=True,
+            )
+            break
+
         row_count = len(rows)
         operations = []
-        max_usage_log_id = last_usage_log_id
         transform_started_at = time.perf_counter()
         for row in rows:
             usage_log_id = int(row["usage_log_id"])
-            max_usage_log_id = max(max_usage_log_id, usage_log_id)
             operations.append(
                 UpdateOne(
                     {"usage_log_id": usage_log_id},
@@ -575,17 +643,19 @@ def sync_once(
             state_collection=state_collection,
             source_table=source_table,
             mongo_collection=mongo_collection_name,
-            last_usage_log_id=max_usage_log_id,
+            last_usage_log_id=new_checkpoint,
         )
         checkpoint_duration_seconds = time.perf_counter() - checkpoint_started_at
 
         total_processed += row_count
         batch_duration_seconds = time.perf_counter() - batch_started_at
         rows_per_second = row_count / batch_duration_seconds if batch_duration_seconds > 0 else 0.0
+        blocked_note = f", blocked_at={barrier_id}" if barrier_id is not None else ""
         print(
             f"[{datetime.now().isoformat(timespec='seconds')}] "
-            f"synced {row_count} rows, checkpoint={max_usage_log_id}, "
+            f"synced {row_count} rows, checkpoint={new_checkpoint}{blocked_note}, "
             f"fetch={fetch_duration_seconds:.3f}s, "
+            f"barrier={barrier_duration_seconds:.3f}s, "
             f"transform={transform_duration_seconds:.3f}s, "
             f"mongo_write={mongo_write_duration_seconds:.3f}s, "
             f"checkpoint_save={checkpoint_duration_seconds:.3f}s, "
@@ -593,7 +663,9 @@ def sync_once(
             f"rate={rows_per_second:.2f} rows/s"
         )
 
-        if row_count < batch_size:
+        # A barrier means the rest of this range has to wait for its own settlement,
+        # and a short batch means the table has no further rows above the checkpoint.
+        if barrier is not None or fetched_count < batch_size:
             break
 
     return total_processed
