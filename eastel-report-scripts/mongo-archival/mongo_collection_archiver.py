@@ -175,42 +175,59 @@ def resolve_cutoff_id(
     id_field: str,
     time_field: str,
     before_date: datetime,
-    tolerance: int = 200_000,
 ) -> int | None:
-    """Highest id whose time_field is older than before_date, by binary search.
+    """Highest id whose time_field is older than before_date.
 
     A plain ``find(...).sort(id).limit(1)`` is not usable here: with no index on
     time_field, MongoDB can only satisfy it by reading every document above the
     boundary, which is most of the collection. Binary search over the id index
-    costs one document read per probe (about 20 for 200M ids) and relies on time
+    costs one document read per probe (about 30 for 200M ids) and relies on time
     rising roughly with id — after which the exact ``time_field`` guard applied
     during the move keeps the result safe even where the two disagree.
+
+    The search converges exactly: stopping short would leave eligible documents in
+    the live collection, which then look like an incomplete run.
     """
     first = collection.find_one({}, {id_field: 1}, sort=[(id_field, 1)])
     last = collection.find_one({}, {id_field: 1}, sort=[(id_field, -1)])
     if not first or not last:
         return None
-    lo = as_int(first[id_field])
-    hi = as_int(last[id_field])
+    lo = as_int(first[id_field]) - 1  # lo is always known to be below the boundary
+    hi = as_int(last[id_field])       # hi is always at or above it
 
-    def time_at(log_id: int) -> datetime | None:
+    def probe(log_id: int) -> tuple[int, Any] | None:
+        """First document at or above log_id."""
         doc = collection.find_one(
-            {id_field: {"$gte": log_id}}, {time_field: 1}, sort=[(id_field, 1)]
+            {id_field: {"$gte": log_id}},
+            {id_field: 1, time_field: 1},
+            sort=[(id_field, 1)],
         )
-        return None if not doc else doc.get(time_field)
+        if not doc:
+            return None
+        return as_int(doc[id_field]), doc.get(time_field)
 
-    if (time_at(hi) or datetime.min) < before_date:
+    lowest = probe(lo + 1)
+    if lowest is None:
+        return None
+    highest = probe(hi)
+    # Everything is old enough: the whole collection qualifies.
+    if highest is not None and (highest[1] is not None and highest[1] < before_date):
         return hi
-    if (time_at(lo) or datetime.max) >= before_date:
+    # The oldest document is already too new: nothing qualifies.
+    if lowest[1] is None or lowest[1] >= before_date:
         return None
 
-    while hi - lo > tolerance:
+    while hi - lo > 1:
         mid = (lo + hi) // 2
-        value = time_at(mid)
-        if value is None or value < before_date:
-            lo = mid
+        found = probe(mid)
+        if found is None:
+            hi = mid  # no documents at or above mid, so the boundary is lower
+            continue
+        doc_id, value = found
+        if value is not None and value < before_date:
+            lo = doc_id  # this document qualifies, so nothing above it is the boundary
         else:
-            hi = mid
+            hi = mid  # no qualifying document at or above mid
     return lo
 
 
