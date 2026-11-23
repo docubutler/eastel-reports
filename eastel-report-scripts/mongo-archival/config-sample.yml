@@ -1,0 +1,31 @@
+mongo:
+  # MONGO_URI overrides this value.
+  uri: ""
+  database: "eastel-data"
+
+archive:
+  # Documents moved per batch. Each batch is copied, verified, then deleted.
+  batch_size: 5000
+  # Stop after moving this many documents per collection per run. 0 = unlimited.
+  max_documents_per_run: 0
+  # Progress and locks live here, one document per source->target pair.
+  state_collection: "collection_archive_state"
+  lock_timeout_seconds: 3600
+  # true skips the interactive confirmation before deleting from the live collection.
+  assume_yes: false
+
+collections:
+  - source: "usage_logs"
+    target: "usage_archive_logs"
+    id_field: "usage_log_id"
+    time_field: "cr_time"
+    # Archive documents older than this date. Resolved once to an id boundary and
+    # stored, so re-runs reuse the same cut-off.
+    before_date: "2026-10-01"
+    # max_id: 0    # set an explicit id cut-off instead; wins over before_date
+
+  - source: "request_logs"
+    target: "request_archive_logs"
+    id_field: "request_log_id"
+    time_field: "cr_time"
+    before_date: "2026-10-01"
